@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buscador de Peças</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px system-ui, sans-serif; margin: 0; padding: 24px;
+         max-width: 900px; margin-inline: auto; }
+  h1 { font-size: 20px; }
+  form { display: flex; gap: 8px; margin-bottom: 24px; }
+  input { flex: 1; padding: 10px; font-size: 16px; }
+  button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  .card { border: 1px solid #8884; border-radius: 8px; padding: 14px;
+          margin-bottom: 12px; }
+  .title { font-weight: 600; margin-bottom: 6px; }
+  .cost { font-size: 20px; font-weight: 700; }
+  .ref { text-decoration: line-through; opacity: .6; margin-left: 8px;
+         font-size: 14px; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 8px;
+         border-radius: 999px; border: 1px solid #8886; margin-right: 6px; }
+  .warn { border-color: #c0392b; color: #c0392b; }
+  .drop { color: #148f4b; font-weight: 600; }
+  .failed { border: 1px solid #c0392b; padding: 10px; border-radius: 8px;
+            margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<h1>Buscador de Peças</h1>
+<form id="f">
+  <input id="term" placeholder="ex: memoria ddr4 8gb" autofocus>
+  <button>Buscar</button>
+</form>
+<div id="out"></div>
+<script>
+const brl = v => Number(v).toLocaleString('pt-BR',
+    { style: 'currency', currency: 'BRL' });
+
+document.getElementById('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const term = document.getElementById('term').value;
+  const out = document.getElementById('out');
+  out.textContent = 'Buscando...';
+  const res = await fetch('/api/search?term=' + encodeURIComponent(term));
+  if (!res.ok) { out.textContent = 'Erro na busca.'; return; }
+  const data = await res.json();
+  out.innerHTML = '';
+
+  if (data.failedSources.length) {
+    const d = document.createElement('div');
+    d.className = 'failed';
+    d.textContent = 'Fontes que falharam: ' + data.failedSources.join(', ')
+                  + '. O resultado abaixo está incompleto.';
+    out.appendChild(d);
+  }
+  if (!data.offers.length) {
+    // A cobertura é parcial: dizer isso, em vez de deixar "nenhum resultado"
+    // parecer "a loja não vende esse produto".
+    out.insertAdjacentHTML('beforeend',
+      '<p>Nenhuma oferta encontrada para <strong>'
+      + term.replace(/</g, '&lt;') + '</strong>.</p>'
+      + '<p>A busca cobre apenas estas categorias: <br>'
+      + data.coveredCategories.join('<br>')
+      + '</p><p>Se a peça estiver fora delas, ela não é consultada — '
+      + 'o que é diferente de a loja não vender.</p>');
+    return;
+  }
+  for (const o of data.offers) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const ref = o.discountPercentage > 0
+        ? `<span class="ref">${brl(o.referencePrice)}</span>` : '';
+    const change = o.changeSinceFirstSeen === null ? ''
+        : `<div class="${o.changeSinceFirstSeen < 0 ? 'drop' : ''}">`
+          + `${o.changeSinceFirstSeen}% em relação ao primeiro preço visto</div>`;
+    const warranty = o.warranty === 'Sem Garantia'
+        ? '<span class="tag warn">Sem garantia</span>'
+        : `<span class="tag">${o.warranty.slice(0, 40)}</span>`;
+    const third = o.thirdPartySeller
+        ? '<span class="tag warn">Vendedor terceiro</span>' : '';
+    card.innerHTML = `
+      <div class="title"><a href="${o.url}" target="_blank" rel="noopener">${o.title}</a></div>
+      <div><span class="cost">${brl(o.effectiveCost)}</span>${ref}</div>
+      ${change}
+      <div style="margin-top:8px">
+        <span class="tag">${o.source}</span>
+        <span class="tag">${o.seller}</span>
+        ${third}${warranty}
+        ${o.available ? '' : '<span class="tag warn">Indisponível</span>'}
+      </div>`;
+    out.appendChild(card);
+  }
+});
+</script>
+</body>
+</html>
