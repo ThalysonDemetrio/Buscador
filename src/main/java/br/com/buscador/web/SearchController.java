@@ -70,6 +70,6 @@ public class SearchController {
                 .map(o -> OfferView.of(o, history.changeFor(o).orElse(null)))
                 .toList();
         history.record(offers);
-        return new SearchResult(views, failed, kabumProperties.categories());
+        return new SearchResult(views, failed, kabumProperties.categories().keySet().stream().toList());
     }
 }

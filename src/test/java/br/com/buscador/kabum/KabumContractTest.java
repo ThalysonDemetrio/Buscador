@@ -6,8 +6,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
+import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +26,7 @@ class KabumContractTest {
     void liveCategoryPageStillMatchesTheExpectedShape() {
         KabumProperties properties = new KabumProperties(
                 "https://www.kabum.com.br", "buscador-interno/1.0",
-                Duration.ofHours(6), List.of("/hardware/memoria-ram"));
+                Duration.ofHours(6), Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
         KabumClient client = new KabumClient(RestClient.create(),
                 new RobotsGuard(RobotsRules.kabum()),
                 new KabumPayloadParser(), properties);

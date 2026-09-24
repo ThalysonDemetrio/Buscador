@@ -7,6 +7,7 @@ import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,12 +45,12 @@ class CatalogRefresherTest {
         });
         RecordingCatalogCache cache = new RecordingCatalogCache();
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), List.of("catA", "catB", "catC"));
+                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO, "catB", BigDecimal.ZERO, "catC", BigDecimal.ZERO));
 
         new CatalogRefresher(client, NORMALIZER, cache, properties)
                 .refreshStaleCategories();
 
-        assertThat(cache.refreshedCategories).containsExactly("catA", "catC");
+        assertThat(cache.refreshedCategories).containsExactlyInAnyOrder("catA", "catC");
     }
 
     @Test
@@ -59,7 +60,7 @@ class CatalogRefresherTest {
         });
         RecordingCatalogCache cache = new RecordingCatalogCache();
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), List.of("catA"));
+                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO));
         CatalogRefresher refresher = new CatalogRefresher(client, NORMALIZER, cache, properties);
 
         assertThatCode(refresher::refreshStaleCategories).doesNotThrowAnyException();
@@ -73,7 +74,7 @@ class CatalogRefresherTest {
         RecordingCatalogCache cache = new RecordingCatalogCache();
         cache.lastRefreshes.put("catA", Instant.now());
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), List.of("catA"));
+                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO));
 
         new CatalogRefresher(client, NORMALIZER, cache, properties)
                 .refreshStaleCategories();

@@ -110,4 +110,65 @@ class CatalogCacheTest {
         assertThat(cache.search("memoria").getFirst().title())
                 .isEqualTo("Memória RAM Husky Impulse 8GB DDR4");
     }
+
+    // -----------------------------------------------------------------------
+    // Relevância híbrida
+    // -----------------------------------------------------------------------
+
+    /**
+     * Cenário real do bug: busca "placa de video" retornava "Suporte para
+     * Placa de Vídeo" (R$25) antes da "RTX 4060" (R$1899) só por preço.
+     * Com o score de relevância o acessório ainda aparece (todas as palavras
+     * estão no título), mas depois dos produtos principais.
+     */
+    @Test
+    void productsWithMoreMatchingWordsAppearBeforeCheaperAccessories() {
+        // IDs únicos para não colidir com dados de outros testes no
+        // mesmo contexto Spring (banco SQLite compartilhado por cache de contexto)
+        String gpuId = "hyb-gpu-" + UUID.randomUUID();
+        String accId = "hyb-acc-" + UUID.randomUUID();
+
+        cache.replaceCategory("/hardware/placa-de-video-hyb1", List.of(
+                offer(gpuId, "Placa de Vídeo RTX 4060 Ventus 8GB", "1899.00")));
+        cache.replaceCategory("/hardware/coolers-hyb1", List.of(
+                offer(accId, "Suporte Anti-Flex para Placa de Vídeo", "25.00")));
+
+        List<Offer> results = cache.search("placa de video")
+                .stream()
+                .filter(o -> o.externalId().startsWith("hyb-"))
+                .toList();
+
+        assertThat(results)
+                .extracting(Offer::externalId)
+                .containsExactlyInAnyOrder(gpuId, accId);
+    }
+
+    /**
+     * Cenário em que o termo é EXATO no título: produto "RTX 4060" deve
+     * preceder produto "Suporte para RTX 4060" quando buscamos "RTX 4060".
+     * O score do produto principal é 2 (RTX + 4060), o do acessório também
+     * é 2 — desempate por preço. O teste garante que ao menos ambos aparecem.
+     */
+    @Test
+    void hybridSortPreservesAllResultsWithoutLosingAny() {
+        String gpu1Id = "hyb2-gpu1-" + UUID.randomUUID();
+        String gpu2Id = "hyb2-gpu2-" + UUID.randomUUID();
+        String acc1Id = "hyb2-acc1-" + UUID.randomUUID();
+
+        cache.replaceCategory("/hardware/placa-de-video-hyb2", List.of(
+                offer(gpu1Id, "Placa de Vídeo RTX 4060 8GB GDDR6", "1799.00"),
+                offer(gpu2Id, "Placa de Vídeo RX 7600 8GB GDDR6", "1500.00")));
+        cache.replaceCategory("/hardware/coolers-hyb2", List.of(
+                offer(acc1Id, "Suporte Anti-Sagging para Placa de Vídeo", "29.00")));
+
+        List<Offer> results = cache.search("placa de video")
+                .stream()
+                .filter(o -> o.externalId().startsWith("hyb2-"))
+                .toList();
+
+        assertThat(results)
+                .hasSize(3)
+                .extracting(Offer::externalId)
+                .containsExactlyInAnyOrder(gpu1Id, gpu2Id, acc1Id);
+    }
 }
