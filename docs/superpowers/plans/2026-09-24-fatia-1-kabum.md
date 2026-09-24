@@ -1412,6 +1412,7 @@ CREATE TABLE IF NOT EXISTS cached_offer (
     external_id      TEXT    NOT NULL,
     category_path    TEXT    NOT NULL,
     title            TEXT    NOT NULL,
+    title_normalized TEXT    NOT NULL,
     effective_cost   TEXT    NOT NULL,
     reference_price  TEXT    NOT NULL,
     available        INTEGER NOT NULL,
@@ -1438,6 +1439,41 @@ CREATE TABLE IF NOT EXISTS price_observation (
 
 Valor monetário é gravado como `TEXT` de propósito: SQLite guardaria `REAL`
 como ponto flutuante binário e introduziria erro em centavos.
+
+**`title_normalized` — verificado na execução, e não é detalhe.** O `lower()` e
+o `LIKE` do SQLite só fazem case-fold de **ASCII**: buscar `"memoria"` nunca
+casa com `"Memória"`. Como ninguém digita acento numa caixa de busca — as
+pessoas digitam "memoria", "placa de video", "processador" — uma busca que
+exige o acento correto é inútil na prática.
+
+A normalização acontece **na escrita**, em Java, e a mesma função é aplicada
+aos termos da consulta:
+
+```java
+    /**
+     * Remove acentos e baixa a caixa. A busca casa contra esta forma porque
+     * ninguém digita acento: "memoria" precisa achar "Memória". Fica em Java
+     * de propósito — lower() e LIKE do SQLite só fazem case-fold de ASCII.
+     */
+    private static String normalize(String text) {
+        return Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
+    }
+```
+
+Três regras que sustentam isso:
+
+1. **A mesma função nos dois lados.** Se escrita e consulta normalizarem
+   diferente, a busca não acha nada e o motivo fica invisível.
+2. **O título original fica intacto** na coluna `title` e é o que vai para a
+   tela. Normalizar para *exibir* em vez de para *casar* trocaria um problema
+   por outro — apareceria "Memoria RAM" sem acento na interface.
+3. **Nunca ajuste o termo do teste para acomodar a busca.** O caminho fácil
+   aqui era trocar `"memoria"` por `"memória"` no teste: a suíte ficaria verde
+   e o produto, quebrado.
+
+A Fatia 2 herda isso: títulos do Mercado Livre também têm acento.
 
 - [ ] **Step 2: Escrever o teste que falha**
 
