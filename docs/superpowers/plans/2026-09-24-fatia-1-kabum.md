@@ -1049,17 +1049,17 @@ class KabumNormalizerTest {
 
     @Test
     void keepsAvailabilityAndSellerTypeIndependent() {
-        Offer indisponivelDaLoja = normalizer.toOffer(product(
-                new BigDecimal("823.52"), new BigDecimal("699.99"),
-                false, "KaBuM!", false, "3 anos"));
-        assertThat(indisponivelDaLoja.available()).isFalse();
-        assertThat(indisponivelDaLoja.thirdPartySeller()).isFalse();
-
-        Offer disponivelDeTerceiro = normalizer.toOffer(product(
+        Offer terceiroSemEstoque = normalizer.toOffer(product(
                 new BigDecimal("619"), new BigDecimal("619"),
-                true, "UP DISTRIBUIDORA", true, "Sem Garantia"));
-        assertThat(disponivelDeTerceiro.available()).isTrue();
-        assertThat(disponivelDeTerceiro.thirdPartySeller()).isTrue();
+                false, "UP DISTRIBUIDORA", true, "Sem Garantia"));
+        assertThat(terceiroSemEstoque.available()).isFalse();
+        assertThat(terceiroSemEstoque.thirdPartySeller()).isTrue();
+
+        Offer lojaDisponivel = normalizer.toOffer(product(
+                new BigDecimal("823.52"), new BigDecimal("699.99"),
+                true, "KaBuM!", false, "3 anos"));
+        assertThat(lojaDisponivel.available()).isTrue();
+        assertThat(lojaDisponivel.thirdPartySeller()).isFalse();
     }
 }
 ```
@@ -1068,8 +1068,15 @@ O último teste existe por um motivo específico: `available` e `thirdPartySelle
 são ambos `boolean`. Nos demais testes os dois carregam o mesmo valor, então uma
 troca entre eles na construção do `Offer` **compilaria e nenhum teste quebraria**
 — e o efeito seria um item de marketplace exibido como venda própria com
-garantia, a confusão mais cara possível numa compra. Valores cruzados, checados
-juntos, fecham isso.
+garantia, a confusão mais cara possível numa compra.
+
+**Os dois booleanos precisam estar cruzados dentro de cada caso** (um `false` e
+o outro `true`), não apenas variar entre os casos. Com valores iguais em cada
+produto, o teste passa mesmo com os campos trocados e não protege nada — é o
+erro que a primeira versão deste teste cometeu.
+
+A forma de saber se um teste desses protege de verdade é inverter os dois
+argumentos na implementação de propósito e confirmar que ele falha.
 
 - [ ] **Step 2: Rodar o teste e confirmar a falha**
 
