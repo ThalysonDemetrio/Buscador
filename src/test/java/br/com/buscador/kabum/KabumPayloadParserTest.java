@@ -65,27 +65,50 @@ class KabumPayloadParserTest {
     }
 
     @Test
-    void failsWhenPriceIsNotNumeric() {
+    void skipsProductWithNonNumericPrice() {
+        // Preço errado não pode virar ZERO (produto pareceria de graça), mas
+        // também não derruba a página inteira: o produto ruim é descartado.
         String product = product(Map.of("priceWithDiscount", "\"R$ 699,99\""));
         String html = buildHtml(catalogServer(product, 5));
 
-        assertThatThrownBy(() -> parser.parse(html))
-                .isInstanceOf(KabumPayloadException.class)
-                .hasMessageContaining("priceWithDiscount");
+        List<KabumProduct> products = parser.parse(html).products();
+        assertThat(products).isEmpty();
     }
 
     @Test
-    void failsWhenProductCodeIsMissing() {
+    void skipsProductWithMissingCode() {
         String product = product(without("code"));
         String html = buildHtml(catalogServer(product, 5));
 
-        assertThatThrownBy(() -> parser.parse(html))
-                .isInstanceOf(KabumPayloadException.class)
-                .hasMessageContaining("code");
+        List<KabumProduct> products = parser.parse(html).products();
+        assertThat(products).isEmpty();
     }
 
     @Test
-    void failsWhenPaginationTotalIsMissing() {
+    void skipsProductWithoutPriceButKeepsTheOthers() {
+        String first = product(Map.of("code", "\"111111\""));
+        String invalid = product(Map.of("code", "\"222222\"", "priceWithDiscount", "\"sob consulta\""));
+        String third = product(Map.of("code", "\"333333\""));
+        String html = buildHtml(catalogServer(List.of(first, invalid, third), 5));
+
+        List<KabumProduct> products = parser.parse(html).products();
+        assertThat(products).extracting(KabumProduct::code)
+                .containsExactly("111111", "333333");
+    }
+
+    @Test
+    void skipsProductWithBlankCode() {
+        String blank = product(Map.of("code", "\"\""));
+        String valid = product(Map.of("code", "\"999999\""));
+        String html = buildHtml(catalogServer(List.of(blank, valid), 5));
+
+        List<KabumProduct> products = parser.parse(html).products();
+        assertThat(products).extracting(KabumProduct::code)
+                .containsExactly("999999");
+    }
+
+    @Test
+    void stillAbortsWhenPaginationIsMissing() {
         String html = buildHtml(
                 "{\"data\":[" + product(Map.of()) + "],\"pagination\":{}}");
 
@@ -167,7 +190,12 @@ class KabumPayloadParserTest {
     }
 
     private String catalogServer(String productJson, int totalPages) {
-        return "{\"data\":[" + productJson + "],\"pagination\":{\"total\":" + totalPages + "}}";
+        return catalogServer(List.of(productJson), totalPages);
+    }
+
+    private String catalogServer(List<String> productsJson, int totalPages) {
+        return "{\"data\":[" + String.join(",", productsJson)
+                + "],\"pagination\":{\"total\":" + totalPages + "}}";
     }
 
     /**
