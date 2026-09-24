@@ -67,4 +67,27 @@ class KabumNormalizerTest {
         assertThat(offer.source()).isEqualTo(Source.KABUM);
         assertThat(offer.externalId()).isEqualTo("922165");
     }
+
+    @Test
+    void keepsAvailabilityAndSellerTypeIndependent() {
+        KabumProduct indisponivelDaLoja = new KabumProduct("922165",
+                "Memória RAM Husky 8GB", "memoria-ram-husky-8gb",
+                new BigDecimal("823.52"), new BigDecimal("699.99"),
+                false, "KaBuM!", false, "3 anos");
+
+        Offer offer = normalizer.toOffer(indisponivelDaLoja);
+
+        assertThat(offer.available()).isFalse();
+        assertThat(offer.thirdPartySeller()).isFalse();
+
+        KabumProduct disponivelDeTerceiro = new KabumProduct("313833",
+                "Memória Kingston 8GB", "memoria-kingston-8gb",
+                new BigDecimal("619"), new BigDecimal("619"),
+                true, "UP DISTRIBUIDORA", true, "Sem Garantia");
+
+        Offer outra = normalizer.toOffer(disponivelDeTerceiro);
+
+        assertThat(outra.available()).isTrue();
+        assertThat(outra.thirdPartySeller()).isTrue();
+    }
 }

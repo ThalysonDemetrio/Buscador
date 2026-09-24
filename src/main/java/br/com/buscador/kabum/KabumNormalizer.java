@@ -11,8 +11,9 @@ public class KabumNormalizer {
 
     /**
      * priceWithDiscount vem igual a price quando não há desconto, então serve
-     * como custo efetivo sem condicional. oldPrice não é usado: veio zerado em
-     * boa parte dos produtos observados.
+     * como custo efetivo sem condicional. referencePrice recebe price; o campo
+     * "preço antigo" da loja não chega aqui porque o parser já o descarta, por
+     * vir zerado em boa parte dos produtos reais.
      */
     public Offer toOffer(KabumProduct product) {
         return new Offer(
