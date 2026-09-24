@@ -42,7 +42,8 @@ public class KabumPayloadParser {
                         "props.pageProps.data ausente ou não é texto");
             }
             JsonNode inner = mapper.readTree(dataNode.asString());
-            return new KabumPage(readProducts(inner), readTotalPages(inner));
+            ProductsResult result = readProducts(inner);
+            return new KabumPage(result.products(), readTotalPages(inner), result.discardedCount());
         } catch (KabumPayloadException e) {
             throw e;
         } catch (Exception e) {
@@ -50,7 +51,7 @@ public class KabumPayloadParser {
         }
     }
 
-    private List<KabumProduct> readProducts(JsonNode inner) {
+    private ProductsResult readProducts(JsonNode inner) {
         JsonNode array = inner.at("/catalogServer/data");
         if (array.isMissingNode()) {
             throw new KabumPayloadException(
@@ -66,16 +67,21 @@ public class KabumPayloadParser {
         // Um produto sem preço/código não é mentira, é ausência — perder 1 de 60
         // é muito melhor que perder os 60 por causa de um item "sob consulta".
         List<KabumProduct> products = new ArrayList<>(array.size());
+        int discardedCount = 0;
         for (JsonNode node : array) {
             try {
                 products.add(readProduct(node));
             } catch (KabumPayloadException e) {
+                discardedCount++;
                 String code = node.path("code").asString("<sem code>");
                 log.warn("Produto {} descartado: {}", code, e.getMessage());
             }
         }
-        return products;
+        return new ProductsResult(products, discardedCount);
     }
+
+    /** Resultado interno de {@link #readProducts}: a lista e quantos itens foram descartados. */
+    private record ProductsResult(List<KabumProduct> products, int discardedCount) {}
 
     private KabumProduct readProduct(JsonNode node) {
         return new KabumProduct(
@@ -93,8 +99,8 @@ public class KabumPayloadParser {
                 // terceiro faz o aviso de garantia aparecer; o contrário
                 // esconderia o risco do comprador.
                 node.at("/flags/isMarketplace").asBoolean(true),
-                // nunca null nem "": o KabumNormalizer (próxima task) depende de
-                // warranty sempre ser um texto não vazio.
+                // nunca null nem "": quem converte este produto para o tipo de
+                // oferta do sistema depende de warranty ser sempre texto não vazio.
                 textOrDefault(node, "warranty", "Não informado"));
     }
 

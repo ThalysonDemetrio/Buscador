@@ -25,10 +25,12 @@ class KabumPayloadParserTest {
 
     @Test
     void extractsEveryProductFromDoubleEncodedPayload() {
-        List<KabumProduct> products = parser.parse(html).products();
-        assertThat(products).hasSize(3);
-        assertThat(products).extracting(KabumProduct::code)
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).hasSize(3);
+        assertThat(page.products()).extracting(KabumProduct::code)
                 .containsExactly("922165", "313833", "564716");
+        // Prova de que o payload real não está sendo silenciosamente podado.
+        assertThat(page.discardedCount()).isZero();
     }
 
     @Test
@@ -71,8 +73,9 @@ class KabumPayloadParserTest {
         String product = product(Map.of("priceWithDiscount", "\"R$ 699,99\""));
         String html = buildHtml(catalogServer(product, 5));
 
-        List<KabumProduct> products = parser.parse(html).products();
-        assertThat(products).isEmpty();
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).isEmpty();
+        assertThat(page.discardedCount()).isEqualTo(1);
     }
 
     @Test
@@ -80,8 +83,9 @@ class KabumPayloadParserTest {
         String product = product(without("code"));
         String html = buildHtml(catalogServer(product, 5));
 
-        List<KabumProduct> products = parser.parse(html).products();
-        assertThat(products).isEmpty();
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).isEmpty();
+        assertThat(page.discardedCount()).isEqualTo(1);
     }
 
     @Test
@@ -91,9 +95,10 @@ class KabumPayloadParserTest {
         String third = product(Map.of("code", "\"333333\""));
         String html = buildHtml(catalogServer(List.of(first, invalid, third), 5));
 
-        List<KabumProduct> products = parser.parse(html).products();
-        assertThat(products).extracting(KabumProduct::code)
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).extracting(KabumProduct::code)
                 .containsExactly("111111", "333333");
+        assertThat(page.discardedCount()).isEqualTo(1);
     }
 
     @Test
@@ -102,9 +107,24 @@ class KabumPayloadParserTest {
         String valid = product(Map.of("code", "\"999999\""));
         String html = buildHtml(catalogServer(List.of(blank, valid), 5));
 
-        List<KabumProduct> products = parser.parse(html).products();
-        assertThat(products).extracting(KabumProduct::code)
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).extracting(KabumProduct::code)
                 .containsExactly("999999");
+        assertThat(page.discardedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void countsMultipleDiscardsInTheSamePage() {
+        String badPrice = product(Map.of("code", "\"111111\"", "priceWithDiscount", "\"sob consulta\""));
+        String ok1 = product(Map.of("code", "\"222222\""));
+        String blankCode = product(Map.of("code", "\"\""));
+        String ok2 = product(Map.of("code", "\"333333\""));
+        String html = buildHtml(catalogServer(List.of(badPrice, ok1, blankCode, ok2), 5));
+
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).extracting(KabumProduct::code)
+                .containsExactly("222222", "333333");
+        assertThat(page.discardedCount()).isEqualTo(2);
     }
 
     @Test
@@ -122,8 +142,9 @@ class KabumPayloadParserTest {
         String product = product(without("warranty"));
         String html = buildHtml(catalogServer(product, 5));
 
-        KabumProduct parsed = parser.parse(html).products().getFirst();
-        assertThat(parsed.warranty()).isEqualTo("Não informado");
+        KabumPage page = parser.parse(html);
+        assertThat(page.products().getFirst().warranty()).isEqualTo("Não informado");
+        assertThat(page.discardedCount()).isZero();
     }
 
     @Test
@@ -131,8 +152,9 @@ class KabumPayloadParserTest {
         String product = product(without("available"));
         String html = buildHtml(catalogServer(product, 5));
 
-        KabumProduct parsed = parser.parse(html).products().getFirst();
-        assertThat(parsed.available()).isFalse();
+        KabumPage page = parser.parse(html);
+        assertThat(page.products().getFirst().available()).isFalse();
+        assertThat(page.discardedCount()).isZero();
     }
 
     @Test
@@ -140,8 +162,9 @@ class KabumPayloadParserTest {
         String product = product(without("flags"));
         String html = buildHtml(catalogServer(product, 5));
 
-        KabumProduct parsed = parser.parse(html).products().getFirst();
-        assertThat(parsed.marketplace()).isTrue();
+        KabumPage page = parser.parse(html);
+        assertThat(page.products().getFirst().marketplace()).isTrue();
+        assertThat(page.discardedCount()).isZero();
     }
 
     /**
