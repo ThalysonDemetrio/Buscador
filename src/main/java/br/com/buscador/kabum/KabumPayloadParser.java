@@ -34,11 +34,11 @@ public class KabumPayloadParser {
         try {
             JsonNode outer = mapper.readTree(script.data());
             JsonNode dataNode = outer.at("/props/pageProps/data");
-            if (dataNode.isMissingNode() || !dataNode.isTextual()) {
+            if (dataNode.isMissingNode() || !dataNode.isString()) {
                 throw new KabumPayloadException(
                         "props.pageProps.data ausente ou não é texto");
             }
-            JsonNode inner = mapper.readTree(dataNode.asText());
+            JsonNode inner = mapper.readTree(dataNode.asString());
             return new KabumPage(readProducts(inner), readTotalPages(inner));
         } catch (KabumPayloadException e) {
             throw e;
@@ -49,31 +49,75 @@ public class KabumPayloadParser {
 
     private List<KabumProduct> readProducts(JsonNode inner) {
         JsonNode array = inner.at("/catalogServer/data");
+        if (array.isMissingNode()) {
+            throw new KabumPayloadException(
+                    "catalogServer.data ausente: o formato do payload mudou");
+        }
         if (!array.isArray()) {
-            throw new KabumPayloadException("catalogServer.data não é um array");
+            throw new KabumPayloadException(
+                    "catalogServer.data presente mas não é um array: o formato do payload mudou");
         }
         List<KabumProduct> products = new ArrayList<>(array.size());
         for (JsonNode node : array) {
             products.add(new KabumProduct(
-                    node.path("code").asText(),
-                    node.path("name").asText(),
-                    node.path("friendlyName").asText(),
-                    money(node, "price"),
-                    money(node, "priceWithDiscount"),
-                    node.path("available").asBoolean(),
-                    node.path("sellerName").asText(),
-                    node.at("/flags/isMarketplace").asBoolean(),
-                    node.path("warranty").asText()));
+                    requireText(node, "code"),
+                    requireText(node, "name"),
+                    // friendlyName só afeta a montagem da URL: "" degrada sem enganar.
+                    node.path("friendlyName").asString(""),
+                    requireMoney(node, "price"),
+                    requireMoney(node, "priceWithDiscount"),
+                    // ausência de "available" vira false: esconder um produto é mais
+                    // seguro do que oferecer algo que talvez não dê para comprar.
+                    node.path("available").asBoolean(false),
+                    textOrDefault(node, "sellerName", "Não informado"),
+                    // ausência do flag vira "é marketplace": tratar como vendedor
+                    // terceiro faz o aviso de garantia aparecer; o contrário
+                    // esconderia o risco do comprador.
+                    node.at("/flags/isMarketplace").asBoolean(true),
+                    // nunca null nem "": o KabumNormalizer (próxima task) depende de
+                    // warranty sempre ser um texto não vazio.
+                    textOrDefault(node, "warranty", "Não informado")));
         }
         return products;
     }
 
     private int readTotalPages(JsonNode inner) {
-        return inner.at("/catalogServer/pagination/total").asInt(1);
+        JsonNode total = inner.at("/catalogServer/pagination/total");
+        if (!total.isNumber()) {
+            throw new KabumPayloadException(
+                    "catalogServer.pagination.total ausente ou não numérico: "
+                            + "o formato da paginação mudou");
+        }
+        return total.asInt();
     }
 
-    private BigDecimal money(JsonNode node, String field) {
+    /** Campo obrigatório: identidade do produto ou texto exibido. Sem ele, nada a fazer. */
+    private String requireText(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isNumber() ? value.decimalValue() : BigDecimal.ZERO;
+        if (value.isMissingNode() || value.isNull()) {
+            throw new KabumPayloadException(
+                    "campo obrigatório \"" + field + "\" ausente: o formato do produto mudou");
+        }
+        return value.asString();
+    }
+
+    /** Campo obrigatório: dinheiro. ZERO como fallback faria o produto parecer de graça. */
+    private BigDecimal requireMoney(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (!value.isNumber()) {
+            throw new KabumPayloadException(
+                    "campo obrigatório \"" + field + "\" não é numérico: o formato do produto mudou");
+        }
+        return value.decimalValue();
+    }
+
+    /** Texto opcional: nunca deixa passar null nem "" adiante, só o default escolhido. */
+    private String textOrDefault(JsonNode node, String field, String defaultValue) {
+        JsonNode value = node.path(field);
+        if (value.isMissingNode() || value.isNull()) {
+            return defaultValue;
+        }
+        String text = value.asString();
+        return text.isEmpty() ? defaultValue : text;
     }
 }
