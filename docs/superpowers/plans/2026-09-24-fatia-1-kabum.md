@@ -1839,7 +1839,11 @@ public class CatalogRefresher {
                 log.info("categoria {} atualizada: {} ofertas", categoryPath, offers.size());
             }
         } catch (RuntimeException e) {
-            log.warn("falha ao atualizar {}: {}", categoryPath, e.getMessage());
+            // Catch largo de propósito: falha de uma categoria não pode derrubar
+            // as outras. Mas a exceção vai inteira para o log — sem o stacktrace,
+            // um bug de programação viraria um WARN indistinguível de falha de
+            // rede, e a categoria pararia de atualizar sem ninguém perceber.
+            log.warn("falha ao atualizar {}", categoryPath, e);
         }
     }
 }
