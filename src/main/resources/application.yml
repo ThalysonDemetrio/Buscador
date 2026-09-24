@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: buscador
+  datasource:
+    url: jdbc:sqlite:buscador.db
+    driver-class-name: org.sqlite.JDBC
+  sql:
+    init:
+      mode: always
+
+buscador:
+  kabum:
+    base-url: https://www.kabum.com.br
+    user-agent: buscador-interno/1.0
+    cache-ttl: PT6H
+    categories:
+      - /hardware/memoria-ram
+      - /hardware/placa-de-video
+      - /hardware/processadores
+      - /hardware/ssd-2-5
+      - /hardware/placas-mae
