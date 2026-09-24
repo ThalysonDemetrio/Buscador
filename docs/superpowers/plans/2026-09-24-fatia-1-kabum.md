@@ -199,10 +199,17 @@ buscador:
 
 - [ ] **Step 6: Rodar o teste que veio do esqueleto**
 
-Run: `./mvnw test`
-Expected: PASS. O contexto Spring sobe. Se falhar por datasource, conferir que
-`schema.sql` ainda não existe — nesse caso remova temporariamente
-`spring.sql.init.mode` e volte na Task 6.
+```bash
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot"
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw test
+```
+
+Expected: PASS — o contexto Spring sobe.
+
+`schema.sql` ainda não existe neste ponto, e isso é esperado: a inicialização
+SQL do Spring é um no-op quando não há arquivo. **Não remova
+`spring.sql.init.mode`** — a Task 6 cria o `schema.sql` que depende dele.
 
 - [ ] **Step 7: Criar `.gitignore`**
 
@@ -984,9 +991,12 @@ marketplace."
 - Test: `src/test/java/br/com/buscador/kabum/KabumClientTest.java`
 
 **Interfaces:**
-- Consumes: `RobotsGuard` (Task 2), `KabumPayloadParser` e `KabumPage` (Task 3).
+- Consumes: `RobotsGuard`, `RobotsRules` e `DisallowedUrlException` (Task 2);
+  `KabumPayloadParser`, `KabumPage` e `KabumPayloadException` (Task 3); e a
+  fixture já copiada para `src/test/resources/fixtures/` na Task 3.
 - Produces: `KabumClient.fetchCategoryPage(String categoryPath, int pageNumber)`
-  devolvendo `KabumPage`.
+  devolvendo `KabumPage`; `KabumProperties` (record de configuração usado
+  também pelas Tasks 7, 9 e 10).
 
 - [ ] **Step 1: Escrever o teste que falha**
 
@@ -1615,6 +1625,7 @@ import br.com.buscador.catalog.CatalogRefresher;
 import br.com.buscador.offer.Offer;
 import br.com.buscador.offer.OfferProvider;
 import br.com.buscador.offer.Source;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -1631,6 +1642,12 @@ public class KabumProvider implements OfferProvider {
     private final Consumer<String> refresh;
     private final Function<String, List<Offer>> lookup;
 
+    /**
+     * @Autowired é obrigatório aqui: a classe tem dois construtores, e sem a
+     * anotação o Spring não escolhe nenhum — procura o construtor sem
+     * argumentos, não encontra, e a aplicação não sobe.
+     */
+    @Autowired
     public KabumProvider(CatalogRefresher refresher, CatalogCache cache) {
         this(term -> refresher.refreshStaleCategories(), cache::search);
     }
@@ -1890,8 +1907,10 @@ buscas."
 - Test: `src/test/java/br/com/buscador/web/SearchControllerTest.java`
 
 **Interfaces:**
-- Consumes: `OfferProvider` (Task 1), `PriceHistory` (Task 8).
-- Produces: `GET /api/search?term=...` devolvendo `SearchResult`.
+- Consumes: `OfferProvider` e `Offer` (Task 1), `PriceHistory` e `PriceChange`
+  (Task 8), `KabumProperties` (Task 5 — para listar as categorias cobertas).
+- Produces: `GET /api/search?term=...` devolvendo `SearchResult`
+  (`{offers, failedSources, coveredCategories}`).
 
 O fan-out com virtual threads já entra aqui, mesmo com um provider só: é o
 ponto de extensão que a Fatia 2 usa sem alteração.
