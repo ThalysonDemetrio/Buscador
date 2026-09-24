@@ -19,6 +19,16 @@ import java.util.function.BiFunction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+/**
+ * Não cobre a agregação de {@code discardedCount} (soma incluindo a
+ * primeira página, buscada fora do laço). O total não sai de
+ * {@code refresh(categoryPath)} por nenhum caminho observável — só decide
+ * o nível do log (WARN vs INFO) — e não há forma de testá-lo sem inspecionar
+ * texto de log. A decisão de não testar foi consciente: o dano de um erro
+ * ali é a precisão de uma mensagem de log, não o comportamento do sistema,
+ * o que não justifica mudar a assinatura de produção só para viabilizar o
+ * teste.
+ */
 class CatalogRefresherTest {
 
     private static final KabumNormalizer NORMALIZER = new KabumNormalizer();
