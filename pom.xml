@@ -71,4 +71,32 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<!--
+			Exclui a tag "contract" do build padrão (acessa a KaBuM real, não deve
+			rodar sem pedido explícito). Ativo apenas quando -Dgroups não é
+			informado, para que "./mvnw test -Dgroups=contract" continue rodando
+			só o teste de contrato.
+		-->
+		<profile>
+			<id>exclude-contract-tests</id>
+			<activation>
+				<property>
+					<name>!groups</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludedGroups>contract</excludedGroups>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
