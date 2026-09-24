@@ -34,3 +34,5 @@ build/
 ### Projeto ###
 *.db
 .superpowers/
+.playwright-mcp/
+*.png
