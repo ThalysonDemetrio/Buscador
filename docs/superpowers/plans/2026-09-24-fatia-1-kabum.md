@@ -152,6 +152,24 @@ curl -L -o skeleton.zip "https://start.spring.io/starter.zip?type=maven-project&
 unzip -o skeleton.zip && rm skeleton.zip
 ```
 
+**Atenção — verificado na execução:** `4.1.1.RELEASE` é o identificador
+interno do Initializr, mas o artefato no Maven Central é `4.1.1`, sem sufixo.
+Depois de descompactar, confirme que o `<parent>` do `pom.xml` diz:
+
+```xml
+<version>4.1.1</version>
+```
+
+Se vier com `.RELEASE`, corrija — com o sufixo o projeto não resolve a
+dependência e nada compila.
+
+**Atenção — o zip traz um `.gitignore` próprio** que sobrescreve o existente.
+Garanta que estas entradas sobrevivem: `target/`, `*.db`, `.idea/`, `*.iml`,
+`.vscode/`, `.superpowers/`.
+
+**Atenção — `mvnw` perde o bit executável** em checkout Windows. Marque no
+índice do git: `git update-index --chmod=+x mvnw`.
+
 - [ ] **Step 4: Adicionar as duas dependências ao `pom.xml`**
 
 Dentro de `<dependencies>`:
