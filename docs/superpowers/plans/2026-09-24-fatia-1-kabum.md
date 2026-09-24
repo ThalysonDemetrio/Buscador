@@ -1046,8 +1046,30 @@ class KabumNormalizerTest {
         assertThat(offer.source()).isEqualTo(Source.KABUM);
         assertThat(offer.externalId()).isEqualTo("922165");
     }
+
+    @Test
+    void keepsAvailabilityAndSellerTypeIndependent() {
+        Offer indisponivelDaLoja = normalizer.toOffer(product(
+                new BigDecimal("823.52"), new BigDecimal("699.99"),
+                false, "KaBuM!", false, "3 anos"));
+        assertThat(indisponivelDaLoja.available()).isFalse();
+        assertThat(indisponivelDaLoja.thirdPartySeller()).isFalse();
+
+        Offer disponivelDeTerceiro = normalizer.toOffer(product(
+                new BigDecimal("619"), new BigDecimal("619"),
+                true, "UP DISTRIBUIDORA", true, "Sem Garantia"));
+        assertThat(disponivelDeTerceiro.available()).isTrue();
+        assertThat(disponivelDeTerceiro.thirdPartySeller()).isTrue();
+    }
 }
 ```
+
+O último teste existe por um motivo específico: `available` e `thirdPartySeller`
+são ambos `boolean`. Nos demais testes os dois carregam o mesmo valor, então uma
+troca entre eles na construção do `Offer` **compilaria e nenhum teste quebraria**
+— e o efeito seria um item de marketplace exibido como venda própria com
+garantia, a confusão mais cara possível numa compra. Valores cruzados, checados
+juntos, fecham isso.
 
 - [ ] **Step 2: Rodar o teste e confirmar a falha**
 
@@ -1070,8 +1092,11 @@ public class KabumNormalizer {
 
     /**
      * priceWithDiscount vem igual a price quando não há desconto, então serve
-     * como custo efetivo sem condicional. oldPrice não é usado: veio zerado em
-     * boa parte dos produtos observados.
+     * como custo efetivo sem condicional.
+     *
+     * referencePrice vem de price. O campo de "preço antigo" da loja não chega
+     * até aqui: o parser já o descarta, por vir zerado em boa parte dos
+     * produtos reais.
      */
     public Offer toOffer(KabumProduct product) {
         return new Offer(
