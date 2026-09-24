@@ -19,6 +19,11 @@
 - Nenhuma requisição HTTP sai do sistema sem passar por `RobotsGuard`.
 - Testes de unidade nunca acessam a rede. Só o teste de contrato (Task 10) acessa, e ele não roda no build padrão.
 - Package raiz: `br.com.buscador`.
+- **Jackson 3** (`tools.jackson.databind`), não Jackson 2
+  (`com.fasterxml.jackson.databind`). Spring Boot 4.1 mudou de linha.
+  O `ObjectMapper` do Jackson 3 é **imutável**: construa com
+  `JsonMapper.builder()...build()`, nunca `new ObjectMapper().enable(...)`.
+  Verificado na execução da Task 3.
 - Idioma: **identificadores** (classes, métodos, variáveis, campos) em inglês.
   **Comentários, Javadoc, mensagens de commit e texto de interface** em
   português. Comentário de domínio em português é o padrão do projeto, não
@@ -791,9 +796,10 @@ public class KabumPayloadException extends RuntimeException {
 ```java
 package br.com.buscador.kabum;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
@@ -811,8 +817,10 @@ public class KabumPayloadParser {
 
     private static final String SCRIPT_ID = "__NEXT_DATA__";
 
-    private final ObjectMapper mapper = new ObjectMapper()
-            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+    // ObjectMapper do Jackson 3 é imutável: configuração só via builder.
+    private final ObjectMapper mapper = JsonMapper.builder()
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+            .build();
 
     public KabumPage parse(String html) {
         Element script = Jsoup.parse(html).getElementById(SCRIPT_ID);
