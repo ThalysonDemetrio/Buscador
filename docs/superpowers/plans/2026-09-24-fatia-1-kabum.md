@@ -491,8 +491,33 @@ class RobotsGuardTest {
     void ensureAllowedPassesOnAllowedUrl() {
         guard.ensureAllowed("https://www.kabum.com.br/hardware/memoria-ram");
     }
+
+    @Test
+    void blocksAnySortParameterIncludingUnknownValues() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/hardware/memoria-ram?sort=-out_of_stock"))
+                .isFalse();
+    }
+
+    @Test
+    void blocksRegardlessOfLetterCase() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/hardware/memoria-ram?Sort=Price"))
+                .isFalse();
+    }
+
+    @Test
+    void blocksSearchPathWithoutTrailingSlash() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/busca?termo=memoria")).isFalse();
+    }
 }
 ```
+
+Os dois testes que permitem (`allowsPlainCategoryPage` e
+`allowsCategoryPageWithPageNumber`) são a contraparte necessária: sem eles, uma
+regra estrita demais bloquearia silenciosamente as únicas URLs que o cliente
+realmente usa, e a busca voltaria vazia sem explicação.
 
 - [ ] **Step 2: Rodar o teste e confirmar a falha**
 
@@ -509,22 +534,25 @@ package br.com.buscador.robots;
 import java.util.List;
 
 /**
- * Regras transcritas de https://www.kabum.com.br/robots.txt em 2026-09-24.
+ * Regras derivadas de https://www.kabum.com.br/robots.txt em 2026-09-24.
  * Cada entrada é um trecho que, se presente na URL, a torna proibida.
+ *
+ * Deliberadamente MAIS estrita que o arquivo original em dois pontos:
+ *
+ * - o robots.txt enumera sete valores de sort= e aqui bloqueamos o parâmetro
+ *   inteiro. O risco é assimétrico: deixar passar URL proibida é falha
+ *   silenciosa com consequência real, bloquear demais é barulhento e barato.
+ *   Como o cliente nunca constrói URL com sort=, bloquear tudo custa zero e
+ *   elimina o falso negativo de qualquer valor que a loja venha a adicionar.
+ * - "/busca" sem barra final cobre também "/busca?termo=x".
  */
 public record RobotsRules(List<String> disallowedFragments) {
 
     public static RobotsRules kabum() {
         return new RobotsRules(List.of(
-                "/busca/",
+                "/busca",
                 "query=",
-                "sort=most_searched",
-                "sort=price",
-                "sort=-price",
-                "sort=-offer_products",
-                "sort=manufacturer_name",
-                "sort=-date_product_arrived",
-                "sort=-number_ratings",
+                "sort=",
                 "/precarrinho",
                 "/carrinho",
                 "/minha-conta",
@@ -574,8 +602,11 @@ public class RobotsGuard {
     }
 
     private String matchedFragment(String url) {
+        // Comparação em minúsculas para que "?Sort=Price" não escape. A URL
+        // original é preservada: a normalização vale só para o casamento.
+        String normalized = url.toLowerCase();
         for (String fragment : rules.disallowedFragments()) {
-            if (url.contains(fragment)) {
+            if (normalized.contains(fragment)) {
                 return fragment;
             }
         }
