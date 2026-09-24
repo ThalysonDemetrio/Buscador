@@ -18,11 +18,11 @@ buscador:
     user-agent: buscador-interno/1.0
     cache-ttl: PT6H
     categories:
-      - /hardware/memoria-ram
-      - /hardware/placa-de-video-vga
-      - /hardware/processadores
-      - /hardware/placas-mae
-      - /hardware/ssd-2-5
-      - /hardware/disco-rigido-hd
-      - /hardware/fontes
-      - /hardware/coolers
+      /hardware/memoria-ram: 20.0
+      /hardware/placa-de-video-vga: 300.0
+      /hardware/processadores: 100.0
+      /hardware/placas-mae: 100.0
+      /hardware/ssd-2-5: 40.0
+      /hardware/disco-rigido-hd: 50.0
+      /hardware/fontes: 80.0
+      /hardware/coolers: 20.0

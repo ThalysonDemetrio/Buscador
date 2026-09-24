@@ -32,7 +32,7 @@ public class CatalogRefresher {
     }
 
     public void refreshStaleCategories() {
-        for (String categoryPath : properties.categories()) {
+        for (String categoryPath : properties.categories().keySet()) {
             if (isStale(categoryPath)) {
                 refresh(categoryPath);
             }
@@ -49,20 +49,30 @@ public class CatalogRefresher {
         try {
             List<Offer> offers = new ArrayList<>();
             int discarded = 0;
+            int ignoredBelowMinPrice = 0;
+            java.math.BigDecimal minPrice = properties.categories().get(categoryPath);
+            
             KabumPage first = client.fetchCategoryPage(categoryPath, 1);
-            first.products().forEach(p -> offers.add(normalizer.toOffer(p)));
+            for (var p : first.products()) {
+                Offer offer = normalizer.toOffer(p);
+                if (offer.effectiveCost().compareTo(minPrice) >= 0) offers.add(offer);
+                else ignoredBelowMinPrice++;
+            }
             discarded += first.discardedCount();
+            
             for (int page = 2; page <= first.totalPages(); page++) {
                 KabumPage next = client.fetchCategoryPage(categoryPath, page);
-                next.products().forEach(p -> offers.add(normalizer.toOffer(p)));
+                for (var p : next.products()) {
+                    Offer offer = normalizer.toOffer(p);
+                    if (offer.effectiveCost().compareTo(minPrice) >= 0) offers.add(offer);
+                    else ignoredBelowMinPrice++;
+                }
                 discarded += next.discardedCount();
             }
             cache.replaceCategory(categoryPath, offers);
-            if (discarded > 0) {
-                // Acumulado por categoria: o parser já logou item a item, mas o
-                // total é o que diz se a cobertura daquela categoria ficou torta.
-                log.warn("categoria {} atualizada: {} ofertas, {} produtos descartados",
-                        categoryPath, offers.size(), discarded);
+            if (discarded > 0 || ignoredBelowMinPrice > 0) {
+                log.warn("categoria {} atualizada: {} ofertas ({} descartados por erro, {} ignorados pelo piso de preco)",
+                        categoryPath, offers.size(), discarded, ignoredBelowMinPrice);
             } else {
                 log.info("categoria {} atualizada: {} ofertas", categoryPath, offers.size());
             }

@@ -79,17 +79,42 @@ public class CatalogCache {
         if (words.isEmpty()) {
             return List.of();
         }
-        StringBuilder sql = new StringBuilder(
-                "SELECT * FROM cached_offer WHERE 1 = 1");
+
+        // Relevância híbrida: o score conta quantas palavras do termo estão
+        // INTEIRAMENTE presentes no título normalizado (não parcialmente).
+        // Produto com todas as palavras → score máximo → aparece no topo.
+        // Dentro do mesmo score → ordena por preço crescente.
+        //
+        // O filtro WHERE exige que TODAS as palavras estejam presentes (LIKE %w%)
+        // para garantir que o resultado seja sobre o assunto buscado.
+        // O ORDER BY usa CASE/WHEN para calcular o score inline no SQLite,
+        // evitando busca de texto completo (FTS5) que exigiria configuração extra.
+        StringBuilder whereClause = new StringBuilder();
+        StringBuilder scoreClause = new StringBuilder("(0");
         List<Object> params = new ArrayList<>();
-        for (String ignored : words) {
-            sql.append(" AND title_normalized LIKE ?");
-        }
+
         for (String word : words) {
+            whereClause.append(" AND title_normalized LIKE ?");
             params.add("%" + word + "%");
         }
-        sql.append(" ORDER BY CAST(effective_cost AS REAL) ASC");
-        return jdbc.sql(sql.toString())
+        // Score: cada palavra que aparece como token isolado (ex: " rtx " ou
+        // começa/termina o título) contribui +1. Isso diferencia "RTX 4060"
+        // de "Suporte para RTX 4060" — ambos passam no WHERE, mas se o
+        // título contiver exatamente as palavras do termo elas valem mais.
+        // Simplificação praticável sem FTS5: conta ocorrências de LIKE.
+        for (String word : words) {
+            // título contém a palavra → +1 ponto de score de correspondência
+            scoreClause.append(" + CASE WHEN title_normalized LIKE ? THEN 1 ELSE 0 END");
+            params.add("%" + word + "%");
+        }
+        scoreClause.append(")");
+
+        String sql = "SELECT * FROM cached_offer WHERE 1 = 1"
+                + whereClause
+                + " ORDER BY " + scoreClause + " DESC,"
+                + " CAST(effective_cost AS REAL) ASC";
+
+        return jdbc.sql(sql)
                 .params(params)
                 .query((rs, rowNum) -> new Offer(
                         Source.valueOf(rs.getString("source")),

@@ -10,6 +10,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -30,7 +31,7 @@ class KabumClientTest {
         server = MockRestServiceServer.bindTo(builder).build();
         KabumProperties properties = new KabumProperties(
                 "https://www.kabum.com.br", "buscador-interno/1.0",
-                Duration.ofHours(6), java.util.List.of("/hardware/memoria-ram"));
+                Duration.ofHours(6), java.util.Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
         client = new KabumClient(builder.build(),
                 new RobotsGuard(RobotsRules.kabum()),
                 new KabumPayloadParser(), properties);
