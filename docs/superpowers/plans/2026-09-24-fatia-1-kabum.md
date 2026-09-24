@@ -738,6 +738,25 @@ O último teste é o que protege contra o risco da seção 6 da spec: quando a
 KaBuM mudar o formato, o sistema falha com mensagem clara em vez de devolver
 lista vazia como se não houvesse produto.
 
+**Política de rigor — seletiva, não cega.** Verificado na execução: um default
+silencioso num campo monetário é pior que lista vazia, porque o produto entra
+custando zero e vence toda comparação de preço. Mas tornar *tudo* obrigatório
+cria falha nova — um único produto malformado derrubaria a categoria inteira.
+A separação é por consequência:
+
+| Campo | Política | Por quê |
+|---|---|---|
+| `code`, `name` | lança | identidade e exibição; sem eles o produto não existe |
+| `price`, `priceWithDiscount` | lança | dinheiro errado é decisão de compra errada |
+| `pagination.total` | lança | ausente, pararíamos de paginar em silêncio |
+| `available` | default `false` | esconder é mais seguro que oferecer o incomprável |
+| `flags.isMarketplace` | default `true` | trata como terceiro e mostra o aviso de garantia |
+| `warranty`, `sellerName` | default `"Não informado"` | nunca null nem vazio; vazio na tela lê-se como "tem garantia" |
+| `friendlyName` | default `""` | só afeta a URL, degrada sem enganar |
+
+O princípio: **o default erra para o lado cauteloso.** Um item bom com aviso
+indevido é visível e corrigível; o inverso é uma compra errada.
+
 - [ ] **Step 3: Rodar o teste e confirmar a falha**
 
 Run: `./mvnw test -Dtest=KabumPayloadParserTest`
@@ -852,26 +871,61 @@ public class KabumPayloadParser {
         List<KabumProduct> products = new ArrayList<>(array.size());
         for (JsonNode node : array) {
             products.add(new KabumProduct(
-                    node.path("code").asText(),
-                    node.path("name").asText(),
-                    node.path("friendlyName").asText(),
-                    money(node, "price"),
-                    money(node, "priceWithDiscount"),
-                    node.path("available").asBoolean(),
-                    node.path("sellerName").asText(),
-                    node.at("/flags/isMarketplace").asBoolean(),
-                    node.path("warranty").asText()));
+                    requireText(node, "code"),
+                    requireText(node, "name"),
+                    // friendlyName só afeta a montagem da URL: "" degrada sem enganar.
+                    node.path("friendlyName").asString(""),
+                    requireMoney(node, "price"),
+                    requireMoney(node, "priceWithDiscount"),
+                    // ausência de "available" vira false: esconder um produto é mais
+                    // seguro do que oferecer algo que talvez não dê para comprar.
+                    node.path("available").asBoolean(false),
+                    textOrDefault(node, "sellerName", "Não informado"),
+                    // ausência do flag vira "é marketplace": tratar como vendedor
+                    // terceiro faz o aviso de garantia aparecer; o contrário
+                    // esconderia o risco do comprador.
+                    node.at("/flags/isMarketplace").asBoolean(true),
+                    // nunca null nem "": o KabumNormalizer depende de warranty
+                    // sempre ser texto não vazio.
+                    textOrDefault(node, "warranty", "Não informado")));
         }
         return products;
     }
 
     private int readTotalPages(JsonNode inner) {
-        return inner.at("/catalogServer/pagination/total").asInt(1);
+        JsonNode total = inner.at("/catalogServer/pagination/total");
+        if (!total.isNumber()) {
+            throw new KabumPayloadException(
+                    "pagination.total ausente: sem ele pararíamos de paginar em "
+                            + "silêncio e coletaríamos só a primeira página");
+        }
+        return total.asInt();
     }
 
-    private BigDecimal money(JsonNode node, String field) {
+    private String requireText(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isNumber() ? value.decimalValue() : BigDecimal.ZERO;
+        if (value.isMissingNode() || value.isNull()) {
+            throw new KabumPayloadException(
+                    "campo obrigatório \"" + field + "\" ausente: o formato da "
+                            + "origem mudou");
+        }
+        return value.asString();
+    }
+
+    private String textOrDefault(JsonNode node, String field, String fallback) {
+        String value = node.path(field).asString("");
+        return value.isBlank() ? fallback : value;
+    }
+
+    private BigDecimal requireMoney(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (!value.isNumber()) {
+            throw new KabumPayloadException(
+                    "campo monetário \"" + field + "\" ausente ou não numérico: "
+                            + "um default silencioso faria o produto custar zero e "
+                            + "vencer toda comparação de preço");
+        }
+        return value.decimalValue();
     }
 }
 ```
