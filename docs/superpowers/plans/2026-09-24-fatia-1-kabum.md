@@ -19,7 +19,10 @@
 - Nenhuma requisição HTTP sai do sistema sem passar por `RobotsGuard`.
 - Testes de unidade nunca acessam a rede. Só o teste de contrato (Task 10) acessa, e ele não roda no build padrão.
 - Package raiz: `br.com.buscador`.
-- Idioma: código e identificadores em inglês; texto de interface em português.
+- Idioma: **identificadores** (classes, métodos, variáveis, campos) em inglês.
+  **Comentários, Javadoc, mensagens de commit e texto de interface** em
+  português. Comentário de domínio em português é o padrão do projeto, não
+  uma inconsistência.
 
 ## Fatos verificados em 2026-09-24
 
