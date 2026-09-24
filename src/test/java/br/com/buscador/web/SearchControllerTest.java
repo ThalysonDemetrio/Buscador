@@ -64,7 +64,7 @@ class SearchControllerTest {
             return new br.com.buscador.kabum.KabumProperties(
                     "https://www.kabum.com.br", "buscador-teste/1.0",
                     java.time.Duration.ofHours(6),
-                    List.of("/hardware/memoria-ram", "/hardware/placa-de-video"));
+                    List.of("/hardware/memoria-ram", "/hardware/placa-de-video-vga"));
         }
     }
 
@@ -100,6 +100,6 @@ class SearchControllerTest {
                 .andExpect(jsonPath("$.coveredCategories[0]")
                         .value("/hardware/memoria-ram"))
                 .andExpect(jsonPath("$.coveredCategories[1]")
-                        .value("/hardware/placa-de-video"));
+                        .value("/hardware/placa-de-video-vga"));
     }
 }

@@ -67,28 +67,83 @@ document.getElementById('f').addEventListener('submit', async e => {
     return;
   }
   for (const o of data.offers) {
+    // Título, vendedor, garantia e URL vêm da KaBuM — em item de marketplace,
+    // o nome do vendedor é texto livre cadastrado por terceiros. Por isso o
+    // card é montado com createElement/textContent, nunca com innerHTML: não
+    // dá para esquecer de escapar um campo que nunca é interpretado como
+    // marcação.
     const card = document.createElement('div');
     card.className = 'card';
-    const ref = o.discountPercentage > 0
-        ? `<span class="ref">${brl(o.referencePrice)}</span>` : '';
-    const change = o.changeSinceFirstSeen === null ? ''
-        : `<div class="${o.changeSinceFirstSeen < 0 ? 'drop' : ''}">`
-          + `${o.changeSinceFirstSeen}% em relação ao primeiro preço visto</div>`;
-    const warranty = o.warranty === 'Sem Garantia'
-        ? '<span class="tag warn">Sem garantia</span>'
-        : `<span class="tag">${o.warranty.slice(0, 40)}</span>`;
-    const third = o.thirdPartySeller
-        ? '<span class="tag warn">Vendedor terceiro</span>' : '';
-    card.innerHTML = `
-      <div class="title"><a href="${o.url}" target="_blank" rel="noopener">${o.title}</a></div>
-      <div><span class="cost">${brl(o.effectiveCost)}</span>${ref}</div>
-      ${change}
-      <div style="margin-top:8px">
-        <span class="tag">${o.source}</span>
-        <span class="tag">${o.seller}</span>
-        ${third}${warranty}
-        ${o.available ? '' : '<span class="tag warn">Indisponível</span>'}
-      </div>`;
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'title';
+    const anchor = document.createElement('a');
+    anchor.href = o.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener';
+    anchor.textContent = o.title;
+    titleDiv.appendChild(anchor);
+    card.appendChild(titleDiv);
+
+    const priceDiv = document.createElement('div');
+    const costSpan = document.createElement('span');
+    costSpan.className = 'cost';
+    costSpan.textContent = brl(o.effectiveCost);
+    priceDiv.appendChild(costSpan);
+    if (o.discountPercentage > 0) {
+      const refSpan = document.createElement('span');
+      refSpan.className = 'ref';
+      refSpan.textContent = brl(o.referencePrice);
+      priceDiv.appendChild(refSpan);
+    }
+    card.appendChild(priceDiv);
+
+    if (o.changeSinceFirstSeen !== null) {
+      const changeDiv = document.createElement('div');
+      if (o.changeSinceFirstSeen < 0) changeDiv.className = 'drop';
+      changeDiv.textContent =
+          `${o.changeSinceFirstSeen}% em relação ao primeiro preço visto`;
+      card.appendChild(changeDiv);
+    }
+
+    const tagsDiv = document.createElement('div');
+    tagsDiv.style.marginTop = '8px';
+
+    const sourceTag = document.createElement('span');
+    sourceTag.className = 'tag';
+    sourceTag.textContent = o.source;
+    tagsDiv.appendChild(sourceTag);
+
+    const sellerTag = document.createElement('span');
+    sellerTag.className = 'tag';
+    sellerTag.textContent = o.seller;
+    tagsDiv.appendChild(sellerTag);
+
+    if (o.thirdPartySeller) {
+      const thirdTag = document.createElement('span');
+      thirdTag.className = 'tag warn';
+      thirdTag.textContent = 'Vendedor terceiro';
+      tagsDiv.appendChild(thirdTag);
+    }
+
+    const warrantyTag = document.createElement('span');
+    if (o.warranty === 'Sem Garantia') {
+      warrantyTag.className = 'tag warn';
+      warrantyTag.textContent = 'Sem garantia';
+    } else {
+      warrantyTag.className = 'tag';
+      warrantyTag.textContent = o.warranty.slice(0, 40);
+    }
+    tagsDiv.appendChild(warrantyTag);
+
+    if (!o.available) {
+      const unavailTag = document.createElement('span');
+      unavailTag.className = 'tag warn';
+      unavailTag.textContent = 'Indisponível';
+      tagsDiv.appendChild(unavailTag);
+    }
+
+    card.appendChild(tagsDiv);
     out.appendChild(card);
   }
 });

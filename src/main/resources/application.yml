@@ -19,7 +19,10 @@ buscador:
     cache-ttl: PT6H
     categories:
       - /hardware/memoria-ram
-      - /hardware/placa-de-video
+      - /hardware/placa-de-video-vga
       - /hardware/processadores
-      - /hardware/ssd-2-5
       - /hardware/placas-mae
+      - /hardware/ssd-2-5
+      - /hardware/disco-rigido-hd
+      - /hardware/fontes
+      - /hardware/coolers
