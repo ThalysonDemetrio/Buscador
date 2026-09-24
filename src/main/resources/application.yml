@@ -1,6 +1,10 @@
 spring:
   application:
     name: buscador
+  http:
+    clients:
+      connect-timeout: 10s
+      read-timeout: 30s
   datasource:
     url: jdbc:sqlite:buscador.db
     driver-class-name: org.sqlite.JDBC

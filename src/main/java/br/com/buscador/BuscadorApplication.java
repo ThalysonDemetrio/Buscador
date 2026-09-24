@@ -22,8 +22,8 @@ public class BuscadorApplication {
 	}
 
 	@Bean
-	RestClient restClient() {
-		return RestClient.builder().build();
+	RestClient restClient(RestClient.Builder builder) {
+		return builder.build();
 	}
 
 }
