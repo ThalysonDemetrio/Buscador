@@ -102,24 +102,46 @@ src/test/resources/fixtures/kabum-memoria-ram-2026-09-24.html
 - Consumes: nada.
 - Produces: projeto Maven compilável com `./mvnw test` verde.
 
-**Pré-requisito que exige ação humana:** `java`, `mvn` e `gradle` não estão
-instalados nesta máquina. Verificado em 2026-09-24.
+**Ambiente verificado em 2026-09-24:** o JDK 25 está instalado em
+`C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot`
+(Temurin 25.0.4.1 LTS), mas **não está no PATH**. Maven e Gradle não estão
+instalados e não precisam estar: o wrapper vem do Initializr.
 
-- [ ] **Step 1: Instalar o JDK 25 (executado pelo usuário)**
+**Regra para todos os comandos deste plano:** cada chamada de shell começa
+limpa, então o PATH precisa ser exportado **em cada comando** que invoque
+`java` ou `./mvnw`. Prefixe sempre:
 
-No terminal, com `!`:
-
+```bash
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot"
+export PATH="$JAVA_HOME/bin:$PATH"
 ```
-winget install --id EclipseAdoptium.Temurin.25.JDK -e
+
+Onde este plano escreve `./mvnw test`, leia "as duas linhas de export acima,
+seguidas de `./mvnw test`". Sem isso o comando falha com
+`java: command not found`, que parece erro de código e não é.
+
+- [ ] **Step 1: Confirmar o JDK**
+
+```bash
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot"
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version && javac -version
 ```
 
-Fechar e reabrir o terminal depois, para o PATH ser recarregado.
+Expected: `openjdk version "25.0.4.1"` e `javac 25.0.4.1`.
 
-- [ ] **Step 2: Confirmar a instalação**
+Se o caminho não existir, a versão do Temurin mudou: localize com
+`ls "/c/Program Files/Eclipse Adoptium"` e ajuste `JAVA_HOME` em todos os
+comandos.
 
-Run: `java -version`
-Expected: uma linha contendo `25`. Se disser "command not found", o terminal
-não foi reaberto ou a instalação falhou. Não seguir sem isso.
+- [ ] **Step 2: Confirmar que o repositório está pronto**
+
+```bash
+git branch --show-current
+```
+
+Expected: `feat/fatia-1-kabum`. A spec, o plano e a fixture já estão
+commitados em `master`.
 
 - [ ] **Step 3: Baixar o esqueleto do Spring Initializr**
 
