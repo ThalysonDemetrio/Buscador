@@ -52,4 +52,24 @@ class RobotsGuardTest {
     void ensureAllowedPassesOnAllowedUrl() {
         guard.ensureAllowed("https://www.kabum.com.br/hardware/memoria-ram");
     }
+
+    @Test
+    void blocksAnySortParameterIncludingUnknownValues() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/hardware/memoria-ram?sort=-out_of_stock"))
+                .isFalse();
+    }
+
+    @Test
+    void blocksRegardlessOfLetterCase() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/hardware/memoria-ram?Sort=Price"))
+                .isFalse();
+    }
+
+    @Test
+    void blocksSearchPathWithoutTrailingSlash() {
+        assertThat(guard.isAllowed(
+                "https://www.kabum.com.br/busca?termo=memoria")).isFalse();
+    }
 }

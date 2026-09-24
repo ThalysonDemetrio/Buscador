@@ -21,8 +21,9 @@ public class RobotsGuard {
     }
 
     private String matchedFragment(String url) {
+        String urlLowerCase = url.toLowerCase();
         for (String fragment : rules.disallowedFragments()) {
-            if (url.contains(fragment)) {
+            if (urlLowerCase.contains(fragment)) {
                 return fragment;
             }
         }
