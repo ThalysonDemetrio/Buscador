@@ -70,24 +70,26 @@ class KabumNormalizerTest {
 
     @Test
     void keepsAvailabilityAndSellerTypeIndependent() {
-        KabumProduct indisponivelDaLoja = new KabumProduct("922165",
+        // vendedor terceiro, fora de estoque
+        KabumProduct outOfStockFromThirdParty = new KabumProduct("922165",
                 "Memória RAM Husky 8GB", "memoria-ram-husky-8gb",
                 new BigDecimal("823.52"), new BigDecimal("699.99"),
-                false, "KaBuM!", false, "3 anos");
+                false, "UP DISTRIBUIDORA", true, "Sem Garantia");
 
-        Offer offer = normalizer.toOffer(indisponivelDaLoja);
+        Offer offer = normalizer.toOffer(outOfStockFromThirdParty);
 
         assertThat(offer.available()).isFalse();
-        assertThat(offer.thirdPartySeller()).isFalse();
+        assertThat(offer.thirdPartySeller()).isTrue();
 
-        KabumProduct disponivelDeTerceiro = new KabumProduct("313833",
+        // loja própria, disponível
+        KabumProduct inStockFromKabum = new KabumProduct("313833",
                 "Memória Kingston 8GB", "memoria-kingston-8gb",
                 new BigDecimal("619"), new BigDecimal("619"),
-                true, "UP DISTRIBUIDORA", true, "Sem Garantia");
+                true, "KaBuM!", false, "3 anos");
 
-        Offer outra = normalizer.toOffer(disponivelDeTerceiro);
+        Offer outra = normalizer.toOffer(inStockFromKabum);
 
         assertThat(outra.available()).isTrue();
-        assertThat(outra.thirdPartySeller()).isTrue();
+        assertThat(outra.thirdPartySeller()).isFalse();
     }
 }
