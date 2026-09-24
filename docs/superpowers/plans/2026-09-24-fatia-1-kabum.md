@@ -197,12 +197,26 @@ Dentro de `<dependencies>`:
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-jdbc</artifactId>
 </dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-restclient</artifactId>
+</dependency>
 ```
+
+**Atenção — verificado na execução:** o `spring-boot-starter-webmvc` sozinho
+**não** fornece `RestClient.Builder` como bean. O Boot 4.1 modularizou essa
+autoconfiguração, e sem o starter acima o contexto nem sobe
+(`NoSuchBeanDefinitionException`). Não contorne construindo o `RestClient` à
+mão: além de ser gambiarra, o cliente sai **sem timeout nenhum**.
 
 - [ ] **Step 5: Configurar `src/main/resources/application.yml`**
 
 ```yaml
 spring:
+  http:
+    clients:
+      connect-timeout: 10s
+      read-timeout: 30s
   datasource:
     url: jdbc:sqlite:buscador.db
     driver-class-name: org.sqlite.JDBC
@@ -222,6 +236,21 @@ buscador:
       - /hardware/ssd-2-5
       - /hardware/placas-mae
 ```
+
+**Atenção — chave de timeout, verificada duas vezes na execução:** é
+`spring.http.clients` no **plural**. A forma no singular
+(`spring.http.client.*`) está **deprecada desde o Boot 4.0** — confirmado lendo
+`spring-configuration-metadata.json` dentro do jar, que declara
+`"deprecated": true, "since": "4.0.0"` e aponta o substituto.
+
+Isso importa porque o erro é **silencioso**: o Boot ignora chave que não
+reconhece, a aplicação sobe, os testes passam, e o cliente fica sem timeout com
+aparência de configurado. Só se descobre quando uma conexão trava e a busca
+nunca responde.
+
+Timeout não é detalhe aqui: o coletor busca 19 páginas por categoria em 5
+categorias, de um site externo. Sem ele, uma conexão pendurada trava a
+atualização inteira sem erro e sem fim.
 
 - [ ] **Step 6: Rodar o teste que veio do esqueleto**
 
