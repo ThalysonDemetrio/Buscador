@@ -791,7 +791,20 @@ package br.com.buscador.kabum;
 
 import java.util.List;
 
-public record KabumPage(List<KabumProduct> products, int totalPages) {}
+/**
+ * discardedCount é quantos produtos desta página foram descartados por serem
+ * individualmente inválidos. Não confundir com erro de formato, que aborta
+ * tudo: aqui a página é legítima e só alguns itens não puderam ser lidos.
+ *
+ * O campo existe porque uma lista de 58 produtos é indistinguível, para quem
+ * consome, entre "a categoria tem 58" e "tinha 60 e dois foram descartados".
+ * O log serve ao operador; este campo serve à camada que exibe o resultado.
+ */
+public record KabumPage(
+        List<KabumProduct> products,
+        int totalPages,
+        int discardedCount
+) {}
 ```
 
 `KabumPayloadException.java`:
@@ -1710,14 +1723,24 @@ public class CatalogRefresher {
     private void refresh(String categoryPath) {
         try {
             List<Offer> offers = new ArrayList<>();
+            int discarded = 0;
             KabumPage first = client.fetchCategoryPage(categoryPath, 1);
             first.products().forEach(p -> offers.add(normalizer.toOffer(p)));
+            discarded += first.discardedCount();
             for (int page = 2; page <= first.totalPages(); page++) {
-                client.fetchCategoryPage(categoryPath, page).products()
-                        .forEach(p -> offers.add(normalizer.toOffer(p)));
+                KabumPage next = client.fetchCategoryPage(categoryPath, page);
+                next.products().forEach(p -> offers.add(normalizer.toOffer(p)));
+                discarded += next.discardedCount();
             }
             cache.replaceCategory(categoryPath, offers);
-            log.info("categoria {} atualizada: {} ofertas", categoryPath, offers.size());
+            if (discarded > 0) {
+                // Acumulado por categoria: o parser já logou item a item, mas o
+                // total é o que diz se a cobertura daquela categoria ficou torta.
+                log.warn("categoria {} atualizada: {} ofertas, {} produtos descartados",
+                        categoryPath, offers.size(), discarded);
+            } else {
+                log.info("categoria {} atualizada: {} ofertas", categoryPath, offers.size());
+            }
         } catch (RuntimeException e) {
             log.warn("falha ao atualizar {}: {}", categoryPath, e.getMessage());
         }
