@@ -32,10 +32,15 @@ class SearchControllerTest {
             return new OfferProvider() {
                 public Source source() { return Source.KABUM; }
                 public List<Offer> search(String term) {
-                    return List.of(new Offer(Source.KABUM, "1",
-                            "Memória RAM Husky 8GB", new BigDecimal("699.99"),
-                            new BigDecimal("823.52"), true, "KaBuM!", "3 anos",
-                            false, "https://x"));
+                    return List.of(
+                            new Offer(Source.KABUM, "2",
+                                    "Dissipador para Memória RAM", new BigDecimal("19.90"),
+                                    new BigDecimal("19.90"), true, "KaBuM!", "1 ano",
+                                    false, "https://y"),
+                            new Offer(Source.KABUM, "1",
+                                    "Memória RAM Husky 8GB", new BigDecimal("699.99"),
+                                    new BigDecimal("823.52"), true, "KaBuM!", "3 anos",
+                                    false, "https://x"));
                 }
             };
         }
@@ -79,6 +84,14 @@ class SearchControllerTest {
                 .andExpect(jsonPath("$.offers[0].title").value("Memória RAM Husky 8GB"))
                 .andExpect(jsonPath("$.offers[0].effectiveCost").value("699.99"))
                 .andExpect(jsonPath("$.offers[0].discountPercentage").value(15));
+    }
+
+    @Test
+    void ordersTitleStartingWithTermBeforeCheaperAccessory() throws Exception {
+        mvc.perform(get("/api/search").param("term", "memoria"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offers[0].title").value("Memória RAM Husky 8GB"))
+                .andExpect(jsonPath("$.offers[1].title").value("Dissipador para Memória RAM"));
     }
 
     @Test

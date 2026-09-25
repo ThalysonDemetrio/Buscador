@@ -3,12 +3,14 @@ package br.com.buscador.catalog;
 import br.com.buscador.kabum.KabumClient;
 import br.com.buscador.kabum.KabumNormalizer;
 import br.com.buscador.kabum.KabumPage;
+import br.com.buscador.kabum.KabumProduct;
 import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,24 +52,21 @@ public class CatalogRefresher {
             List<Offer> offers = new ArrayList<>();
             int discarded = 0;
             int ignoredBelowMinPrice = 0;
-            java.math.BigDecimal minPrice = properties.categories().get(categoryPath);
-            
-            KabumPage first = client.fetchCategoryPage(categoryPath, 1);
-            for (var p : first.products()) {
-                Offer offer = normalizer.toOffer(p);
-                if (offer.effectiveCost().compareTo(minPrice) >= 0) offers.add(offer);
-                else ignoredBelowMinPrice++;
-            }
-            discarded += first.discardedCount();
-            
-            for (int page = 2; page <= first.totalPages(); page++) {
-                KabumPage next = client.fetchCategoryPage(categoryPath, page);
-                for (var p : next.products()) {
-                    Offer offer = normalizer.toOffer(p);
-                    if (offer.effectiveCost().compareTo(minPrice) >= 0) offers.add(offer);
-                    else ignoredBelowMinPrice++;
+            BigDecimal minPrice = properties.categories().get(categoryPath);
+
+            int totalPages = 1;
+            for (int page = 1; page <= totalPages; page++) {
+                KabumPage current = client.fetchCategoryPage(categoryPath, page);
+                totalPages = current.totalPages();
+                discarded += current.discardedCount();
+                for (KabumProduct product : current.products()) {
+                    Offer offer = normalizer.toOffer(product);
+                    if (offer.effectiveCost().compareTo(minPrice) >= 0) {
+                        offers.add(offer);
+                    } else {
+                        ignoredBelowMinPrice++;
+                    }
                 }
-                discarded += next.discardedCount();
             }
             cache.replaceCategory(categoryPath, offers);
             if (discarded > 0 || ignoredBelowMinPrice > 0) {

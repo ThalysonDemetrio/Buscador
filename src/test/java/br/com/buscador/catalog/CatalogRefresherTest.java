@@ -3,6 +3,7 @@ package br.com.buscador.catalog;
 import br.com.buscador.kabum.KabumClient;
 import br.com.buscador.kabum.KabumNormalizer;
 import br.com.buscador.kabum.KabumPage;
+import br.com.buscador.kabum.KabumProduct;
 import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,28 @@ class CatalogRefresherTest {
         assertThat(cache.refreshedCategories).isEmpty();
     }
 
+    @Test
+    void keepsOnlyOffersAtOrAboveTheCategoryFloorAcrossAllPages() {
+        StubKabumClient client = new StubKabumClient((category, page) -> page == 1
+                ? new KabumPage(List.of(product("suporte", "16.99"), product("gt730", "310.55")), 2, 0)
+                : new KabumPage(List.of(product("abaixo", "299.99"), product("no-piso", "300.00")), 2, 0));
+        RecordingCatalogCache cache = new RecordingCatalogCache();
+        KabumProperties properties = new KabumProperties("https://x", "UA",
+                Duration.ofMinutes(30), Map.of("gpu", new BigDecimal("300")));
+
+        new CatalogRefresher(client, NORMALIZER, cache, properties)
+                .refreshStaleCategories();
+
+        assertThat(cache.savedOffers.get("gpu")).extracting(Offer::externalId)
+                .containsExactlyInAnyOrder("gt730", "no-piso");
+    }
+
+    private static KabumProduct product(String code, String price) {
+        BigDecimal value = new BigDecimal(price);
+        return new KabumProduct(code, "Placa de Vídeo " + code, code, value, value,
+                true, "KaBuM!", false, "1 ano");
+    }
+
     private static class StubKabumClient extends KabumClient {
         private final BiFunction<String, Integer, KabumPage> pages;
 
@@ -98,6 +121,7 @@ class CatalogRefresherTest {
 
     private static class RecordingCatalogCache extends CatalogCache {
         final List<String> refreshedCategories = new ArrayList<>();
+        final Map<String, List<Offer>> savedOffers = new HashMap<>();
         final Map<String, Instant> lastRefreshes = new HashMap<>();
 
         RecordingCatalogCache() {
@@ -107,6 +131,7 @@ class CatalogRefresherTest {
         @Override
         public void replaceCategory(String categoryPath, List<Offer> offers) {
             refreshedCategories.add(categoryPath);
+            savedOffers.put(categoryPath, offers);
         }
 
         @Override

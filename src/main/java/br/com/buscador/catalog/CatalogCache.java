@@ -2,17 +2,15 @@ package br.com.buscador.catalog;
 
 import br.com.buscador.offer.Offer;
 import br.com.buscador.offer.Source;
+import br.com.buscador.search.TextNormalizer;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.text.Normalizer;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -54,7 +52,7 @@ public class CatalogCache {
                         url = excluded.url
                     """)
                     .params(offer.source().name(), offer.externalId(), categoryPath,
-                            offer.title(), normalize(offer.title()),
+                            offer.title(), TextNormalizer.normalize(offer.title()),
                             offer.effectiveCost().toPlainString(),
                             offer.referencePrice().toPlainString(),
                             offer.available() ? 1 : 0, offer.seller(),
@@ -72,50 +70,21 @@ public class CatalogCache {
                 .update();
     }
 
+    /**
+     * Filtra por todas as palavras do termo, sem ordenar: a ordem de exibição
+     * é decidida por quem junta as fontes ({@link br.com.buscador.search.RelevanceOrder}).
+     */
     public List<Offer> search(String term) {
-        List<String> words = Arrays.stream(normalize(term).split("\\s+"))
-                .filter(w -> !w.isBlank())
-                .toList();
+        List<String> words = TextNormalizer.words(term);
         if (words.isEmpty()) {
             return List.of();
         }
 
-        // Relevância híbrida: o score conta quantas palavras do termo estão
-        // INTEIRAMENTE presentes no título normalizado (não parcialmente).
-        // Produto com todas as palavras → score máximo → aparece no topo.
-        // Dentro do mesmo score → ordena por preço crescente.
-        //
-        // O filtro WHERE exige que TODAS as palavras estejam presentes (LIKE %w%)
-        // para garantir que o resultado seja sobre o assunto buscado.
-        // O ORDER BY usa CASE/WHEN para calcular o score inline no SQLite,
-        // evitando busca de texto completo (FTS5) que exigiria configuração extra.
-        StringBuilder whereClause = new StringBuilder();
-        StringBuilder scoreClause = new StringBuilder("(0");
-        List<Object> params = new ArrayList<>();
-
-        for (String word : words) {
-            whereClause.append(" AND title_normalized LIKE ?");
-            params.add("%" + word + "%");
-        }
-        // Score: cada palavra que aparece como token isolado (ex: " rtx " ou
-        // começa/termina o título) contribui +1. Isso diferencia "RTX 4060"
-        // de "Suporte para RTX 4060" — ambos passam no WHERE, mas se o
-        // título contiver exatamente as palavras do termo elas valem mais.
-        // Simplificação praticável sem FTS5: conta ocorrências de LIKE.
-        for (String word : words) {
-            // título contém a palavra → +1 ponto de score de correspondência
-            scoreClause.append(" + CASE WHEN title_normalized LIKE ? THEN 1 ELSE 0 END");
-            params.add("%" + word + "%");
-        }
-        scoreClause.append(")");
-
-        String sql = "SELECT * FROM cached_offer WHERE 1 = 1"
-                + whereClause
-                + " ORDER BY " + scoreClause + " DESC,"
-                + " CAST(effective_cost AS REAL) ASC";
+        String sql = "SELECT * FROM cached_offer WHERE "
+                + String.join(" AND ", Collections.nCopies(words.size(), "title_normalized LIKE ?"));
 
         return jdbc.sql(sql)
-                .params(params)
+                .params(words.stream().map(w -> "%" + w + "%").toList())
                 .query((rs, rowNum) -> new Offer(
                         Source.valueOf(rs.getString("source")),
                         rs.getString("external_id"),
@@ -128,17 +97,6 @@ public class CatalogCache {
                         rs.getInt("third_party") == 1,
                         rs.getString("url")))
                 .list();
-    }
-
-    /**
-     * Remove acentos e baixa a caixa. A busca casa contra esta forma porque
-     * ninguém digita acento: "memoria" precisa achar "Memória". Fica em Java
-     * de propósito — lower() e LIKE do SQLite só fazem case-fold de ASCII.
-     */
-    private static String normalize(String text) {
-        return Normalizer.normalize(text, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT);
     }
 
     public Optional<Instant> lastRefresh(String categoryPath) {

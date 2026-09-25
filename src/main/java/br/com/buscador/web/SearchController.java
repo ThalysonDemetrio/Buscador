@@ -4,6 +4,7 @@ import br.com.buscador.history.PriceHistory;
 import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
 import br.com.buscador.offer.OfferProvider;
+import br.com.buscador.search.RelevanceOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -66,7 +66,7 @@ public class SearchController {
         }
 
         List<OfferView> views = offers.stream()
-                .sorted(Comparator.comparing(Offer::effectiveCost))
+                .sorted(RelevanceOrder.forTerm(term))
                 .map(o -> OfferView.of(o, history.changeFor(o).orElse(null)))
                 .toList();
         history.record(offers);

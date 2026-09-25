@@ -33,7 +33,7 @@ A jornada do dado passa por módulos muito bem isolados, cada um com uma respons
 - **O Risco Aceito:** O site da KaBuM um dia vai mudar seu layout interno, quebrando o leitor de JSON. Aceitamos isso, e criamos a Task 10 (Teste de Contrato) para que um alerta dispare automatica e antecipadamente quando a loja mudar de cara.
 
 ## 5. Limitações Atuais e Próximos Passos
-O que o software já faz é maduro, mas antes de avançarmos para outras lojas, ele tem um defeito grave de usabilidade conhecido:
-- **A Relevância da Busca (Problema Atual):** Como a listagem final (Web) simplesmente pega os produtos encontrados e ordena do mais barato para o mais caro, uma pesquisa por "Placa de Vídeo" vai trazer Suportes de R$ 15, Adaptadores e Cabos antes da placa real.
-- **Passo 2:** Corrigir a filtragem e a relevância de preços (estabelecer um "piso" de valor ou filtro restrito).
-- **Passo 3:** Iniciar a construção do provedor do Mercado Livre (exigirá login e persistência rotativa de tokens via API oficial).
+- **Relevância (resolvida):** duas camadas. O piso de preço por categoria (`application.yml`) descarta acessórios baratos na atualização do catálogo. Na exibição, `RelevanceOrder` põe primeiro os títulos que começam com o termo buscado e desempata por custo efetivo. A ordenação vive no controller, e não no cache, porque é ele que junta as fontes.
+- **Limitação conhecida:** título que não começa com o termo (ex.: "Placa Vídeo" sem o "de", ou código EAN no início) cai para o grupo de baixo. Aparece, mas depois.
+- **Chaves com "/" no YAML:** chave de Map precisa de colchetes (`"[/hardware/...]"`), senão o Spring remove a barra e todas as URLs quebram. `KabumPropertiesBindingTest` protege isso.
+- **Próximo passo:** iniciar a construção do provedor do Mercado Livre (exigirá login e persistência rotativa de tokens via API oficial).
