@@ -398,7 +398,8 @@ Para rodar a aplicação:
 
 Depois abra `http://localhost:8080`. Ao subir, o catálogo vencido é baixado em
 background (~70s para 7.132 produtos de 8 categorias); a busca não espera por
-isso. Num `buscador.db` novo, ela volta vazia até a primeira carga terminar.
+isso. O banco fica em `~/.buscador/buscador.db` (a pasta é criada ao subir);
+num banco novo, a busca volta vazia até a primeira carga terminar.
 
 **Teste verde com fixture não é a mesma coisa que o sistema funcionando contra
 a loja real.** Nesta sessão, três problemas sérios só apareceram rodando de

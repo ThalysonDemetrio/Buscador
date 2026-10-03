@@ -6,7 +6,8 @@ spring:
       connect-timeout: 10s
       read-timeout: 30s
   datasource:
-    url: jdbc:sqlite:buscador.db
+    # Caminho fixo: relativo, o banco mudava conforme a pasta de onde a app era iniciada.
+    url: jdbc:sqlite:${user.home}/.buscador/buscador.db
     driver-class-name: org.sqlite.JDBC
   sql:
     init:
