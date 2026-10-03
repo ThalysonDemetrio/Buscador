@@ -225,7 +225,7 @@ src/main/java/br/com/buscador/
   BuscadorApplication.java          só anotações e main — NÃO declare @Bean aqui
   offer/Offer.java                  record de 10 componentes, a fronteira entre fontes
   offer/Source.java                 enum: KABUM, MERCADO_LIVRE
-  offer/OfferProvider.java          interface: source() e search(String)
+  offer/OfferProvider.java          interface: source(), search(String) e coverage()
   robots/RobotsGuard.java           recusa URL proibida
   robots/RobotsRules.java           regras da KaBuM
   robots/RobotsConfiguration.java   bean do guarda
@@ -388,7 +388,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./mvnw test
 ```
 
-Esperado: **72 testes verdes**, sem acesso à rede.
+Esperado: **76 testes verdes**, sem acesso à rede.
 
 Para rodar a aplicação:
 

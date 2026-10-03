@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,6 +37,9 @@ class SearchControllerTest {
         OfferProvider workingProvider() {
             return new OfferProvider() {
                 public Source source() { return Source.KABUM; }
+                public List<String> coverage() {
+                    return List.of("/hardware/memoria-ram", "/hardware/placa-de-video-vga");
+                }
                 public List<Offer> search(String term) {
                     return List.of(
                             new Offer(Source.KABUM, "2",
@@ -54,6 +58,7 @@ class SearchControllerTest {
         OfferProvider failingProvider() {
             return new OfferProvider() {
                 public Source source() { return Source.MERCADO_LIVRE; }
+                public List<String> coverage() { return List.of("Mercado Livre: toda a loja"); }
                 public List<Offer> search(String term) {
                     throw new IllegalStateException("fonte fora do ar");
                 }
@@ -67,15 +72,6 @@ class SearchControllerTest {
                 public java.util.Map<Offer, br.com.buscador.history.PriceChange>
                         changesFor(List<Offer> offers) { return java.util.Map.of(); }
             };
-        }
-
-        @Bean
-        br.com.buscador.kabum.KabumProperties kabumProperties() {
-            return new br.com.buscador.kabum.KabumProperties(
-                    "https://www.kabum.com.br", "buscador-teste/1.0",
-                    java.time.Duration.ofHours(6),
-                    java.util.Map.of("/hardware/memoria-ram", BigDecimal.ZERO,
-                                     "/hardware/placa-de-video-vga", BigDecimal.ZERO));
         }
     }
 
@@ -124,9 +120,11 @@ class SearchControllerTest {
     }
 
     @Test
-    void alwaysReportsWhichCategoriesAreCovered() throws Exception {
+    void reportsCoverageOfEverySourceEvenWhenOneFails() throws Exception {
         mvc.perform(get("/api/search").param("term", "memoria"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.coveredCategories.length()").value(2));
+                .andExpect(jsonPath("$.coveredCategories", containsInAnyOrder(
+                        "/hardware/memoria-ram", "/hardware/placa-de-video-vga",
+                        "Mercado Livre: toda a loja")));
     }
 }
