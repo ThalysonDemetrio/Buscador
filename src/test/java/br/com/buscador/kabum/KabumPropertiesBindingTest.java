@@ -18,13 +18,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class KabumPropertiesBindingTest {
 
-    @Test
-    void categoryPathsKeepTheirSlashes() throws IOException {
+    private static KabumProperties bindApplicationYml() throws IOException {
         var sources = new YamlPropertySourceLoader()
                 .load("application", new ClassPathResource("application.yml"));
-        KabumProperties properties = new Binder(ConfigurationPropertySources.from(sources))
+        return new Binder(ConfigurationPropertySources.from(sources))
                 .bind("buscador.kabum", KabumProperties.class)
                 .get();
+    }
+
+    @Test
+    void categoryPathsKeepTheirSlashes() throws IOException {
+        KabumProperties properties = bindApplicationYml();
 
         assertThat(properties.categories().keySet())
                 .isNotEmpty()
@@ -32,5 +36,14 @@ class KabumPropertiesBindingTest {
                 .contains("/hardware/placa-de-video-vga");
         assertThat(properties.categories().get("/hardware/placa-de-video-vga"))
                 .isEqualByComparingTo("300.0");
+    }
+
+    /** Sem o valor no yml, o int viraria 0 e o refresher não baixaria página nenhuma, em silêncio. */
+    @Test
+    void pacingAndPageLimitAreConfigured() throws IOException {
+        KabumProperties properties = bindApplicationYml();
+
+        assertThat(properties.requestInterval()).isPositive();
+        assertThat(properties.maxPages()).isPositive();
     }
 }

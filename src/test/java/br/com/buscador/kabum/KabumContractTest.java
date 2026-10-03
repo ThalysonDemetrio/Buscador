@@ -26,7 +26,7 @@ class KabumContractTest {
     void liveCategoryPageStillMatchesTheExpectedShape() {
         KabumProperties properties = new KabumProperties(
                 "https://www.kabum.com.br", "buscador-interno/1.0",
-                Duration.ofHours(6), Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
+                Duration.ofHours(6), Duration.ZERO, 50, Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
         KabumClient client = new KabumClient(RestClient.create(),
                 new RobotsGuard(RobotsRules.kabum()),
                 new KabumPayloadParser(), properties);

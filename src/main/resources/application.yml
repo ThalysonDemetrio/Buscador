@@ -20,6 +20,9 @@ buscador:
     base-url: https://www.kabum.com.br
     user-agent: buscador-interno/1.0
     cache-ttl: PT6H
+    # O robots.txt não define Crawl-delay; o ritmo é nosso, por educação.
+    request-interval: PT1S
+    max-pages: 50
     # Colchetes obrigatórios: sem eles o Spring remove a "/" da chave do Map.
     categories:
       "[/hardware/memoria-ram]": 20.0
