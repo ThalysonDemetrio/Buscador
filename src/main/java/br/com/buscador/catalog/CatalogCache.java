@@ -81,10 +81,11 @@ public class CatalogCache {
         }
 
         String sql = "SELECT * FROM cached_offer WHERE "
-                + String.join(" AND ", Collections.nCopies(words.size(), "title_normalized LIKE ?"));
+                + String.join(" AND ", Collections.nCopies(words.size(),
+                        "title_normalized LIKE ? ESCAPE '\\'"));
 
         return jdbc.sql(sql)
-                .params(words.stream().map(w -> "%" + w + "%").toList())
+                .params(words.stream().map(w -> "%" + escapeLikeWildcards(w) + "%").toList())
                 .query((rs, rowNum) -> new Offer(
                         Source.valueOf(rs.getString("source")),
                         rs.getString("external_id"),
@@ -97,6 +98,11 @@ public class CatalogCache {
                         rs.getInt("third_party") == 1,
                         rs.getString("url")))
                 .list();
+    }
+
+    /** "%" e "_" digitados pelo usuário são texto, não curinga do LIKE. */
+    private static String escapeLikeWildcards(String word) {
+        return word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     public Optional<Instant> lastRefresh(String categoryPath) {
