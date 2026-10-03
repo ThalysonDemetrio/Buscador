@@ -10,7 +10,7 @@ class OfferTest {
     private Offer offer(BigDecimal effective, BigDecimal reference) {
         return new Offer(Source.KABUM, "922165", "Memória RAM Husky 8GB",
                 effective, reference, true, "KaBuM!", "3 anos de garantia",
-                false, "https://www.kabum.com.br/produto/922165/x");
+                false, "https://www.kabum.com.br/produto/922165/x", null);
     }
 
     @Test

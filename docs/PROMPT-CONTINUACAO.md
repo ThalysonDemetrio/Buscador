@@ -245,7 +245,7 @@ src/main/java/br/com/buscador/
   web/SearchController.java         GET /api/search — fan-out com virtual threads
   web/OfferView.java                
   web/SearchResult.java             offers, failedSources, coveredCategories
-  resources/schema.sql              3 tabelas
+  resources/db/migration/           migrações Flyway (V1 esquema, V2 foto); nunca edite uma já aplicada
   resources/application.yml         8 categorias, timeouts
   resources/static/index.html       a tela
 ```
@@ -388,7 +388,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./mvnw test
 ```
 
-Esperado: **76 testes verdes**, sem acesso à rede.
+Esperado: **89 testes verdes**, sem acesso à rede.
 
 Para rodar a aplicação:
 

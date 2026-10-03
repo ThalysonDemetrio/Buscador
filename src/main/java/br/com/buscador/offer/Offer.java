@@ -6,7 +6,8 @@ import java.util.Objects;
 
 /**
  * effectiveCost é o preço à vista já com desconto, sem frete: frete depende de
- * CEP e não é conhecido no momento da busca.
+ * CEP e não é conhecido no momento da busca. imageUrl é nulo quando a fonte não
+ * tem foto do produto.
  */
 public record Offer(
         Source source,
@@ -18,7 +19,8 @@ public record Offer(
         String seller,
         String warranty,
         boolean thirdPartySeller,
-        String url
+        String url,
+        String imageUrl
 ) {
     public Offer {
         Objects.requireNonNull(source, "source");

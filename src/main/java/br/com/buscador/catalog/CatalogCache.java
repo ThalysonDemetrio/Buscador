@@ -37,8 +37,8 @@ public class CatalogCache {
             jdbc.sql("""
                     INSERT INTO cached_offer (source, external_id, category_path,
                         title, title_normalized, effective_cost, reference_price,
-                        available, seller, warranty, third_party, url)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        available, seller, warranty, third_party, url, image_url)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (source, external_id) DO UPDATE SET
                         category_path = excluded.category_path,
                         title = excluded.title,
@@ -49,7 +49,8 @@ public class CatalogCache {
                         seller = excluded.seller,
                         warranty = excluded.warranty,
                         third_party = excluded.third_party,
-                        url = excluded.url
+                        url = excluded.url,
+                        image_url = excluded.image_url
                     """)
                     .params(offer.source().name(), offer.externalId(), categoryPath,
                             offer.title(), TextNormalizer.normalize(offer.title()),
@@ -57,7 +58,7 @@ public class CatalogCache {
                             offer.referencePrice().toPlainString(),
                             offer.available() ? 1 : 0, offer.seller(),
                             offer.warranty(), offer.thirdPartySeller() ? 1 : 0,
-                            offer.url())
+                            offer.url(), offer.imageUrl())
                     .update();
         }
         jdbc.sql("""
@@ -96,7 +97,8 @@ public class CatalogCache {
                         rs.getString("seller"),
                         rs.getString("warranty"),
                         rs.getInt("third_party") == 1,
-                        rs.getString("url")))
+                        rs.getString("url"),
+                        rs.getString("image_url")))
                 .list();
     }
 

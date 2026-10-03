@@ -167,6 +167,25 @@ class KabumPayloadParserTest {
         assertThat(page.discardedCount()).isZero();
     }
 
+    @Test
+    void readsTheThumbnailFromTheRealPayload() {
+        KabumProduct husky = parser.parse(html).products().getFirst();
+        assertThat(husky.imageUrl())
+                .startsWith("https://images.kabum.com.br/produtos/fotos/922165/")
+                .endsWith("_m.jpg");
+    }
+
+    @Test
+    void keepsProductWithoutThumbnailAsHavingNoImage() {
+        String withoutField = product(without("thumbnail"));
+        String blank = product(Map.of("code", "111111", "thumbnail", "\"\""));
+        String html = buildHtml(catalogServer(List.of(withoutField, blank), 5));
+
+        KabumPage page = parser.parse(html);
+        assertThat(page.products()).extracting(KabumProduct::imageUrl).containsOnlyNulls();
+        assertThat(page.discardedCount()).isZero();
+    }
+
     /**
      * {@code Map.of} não aceita valor {@code null}, então esse helper monta
      * o mapa de override "remova este campo" com um {@link java.util.HashMap}.

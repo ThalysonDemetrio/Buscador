@@ -101,7 +101,10 @@ public class KabumPayloadParser {
                 node.at("/flags/isMarketplace").asBoolean(true),
                 // nunca null nem "": quem converte este produto para o tipo de
                 // oferta do sistema depende de warranty ser sempre texto não vazio.
-                textOrDefault(node, "warranty", "Não informado"));
+                textOrDefault(node, "warranty", "Não informado"),
+                // foto ausente vira null, não um default: não existe URL de
+                // imagem "neutra" que não engane, e a tela já trata a falta.
+                textOrDefault(node, "thumbnail", null));
     }
 
     private int readTotalPages(JsonNode inner) {

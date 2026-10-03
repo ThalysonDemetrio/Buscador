@@ -36,7 +36,7 @@ class PriceHistoryTest {
     private Offer offer(String id, String cost) {
         return new Offer(Source.KABUM, id, "Memória RAM Husky",
                 new BigDecimal(cost), new BigDecimal(cost), true, "KaBuM!",
-                "1 ano", false, "https://x");
+                "1 ano", false, "https://x", null);
     }
 
     private long observationsOf(String id) {
