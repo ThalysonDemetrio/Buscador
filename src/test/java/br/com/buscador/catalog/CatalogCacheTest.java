@@ -56,6 +56,19 @@ class CatalogCacheTest {
     }
 
     @Test
+    void treatsLikeWildcardsTypedByTheUserAsPlainText() {
+        cache.replaceCategory("/hardware/memoria-ram", List.of(
+                offer("1", "Memória RAM Husky 8GB", "699.99"),
+                offer("2", "Cooler com 100% cobre", "99.00")));
+
+        assertThat(cache.search("_")).isEmpty();
+        assertThat(cache.search("100%")).extracting(Offer::externalId)
+                .containsExactly("2");
+        assertThat(cache.search("%")).extracting(Offer::externalId)
+                .containsExactly("2");
+    }
+
+    @Test
     void preservesCentsExactly() {
         cache.replaceCategory("/hardware/memoria-ram",
                 List.of(offer("1", "Memória RAM Husky", "699.99")));
