@@ -8,6 +8,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KabumNormalizerTest {
 
+    private static final String IMAGE =
+            "https://images.kabum.com.br/produtos/fotos/922165/memoria-ram-husky_m.jpg";
+
     private final KabumNormalizer normalizer = new KabumNormalizer();
 
     private KabumProduct product(BigDecimal price, BigDecimal withDiscount,
@@ -15,7 +18,7 @@ class KabumNormalizerTest {
                                  boolean marketplace, String warranty) {
         return new KabumProduct("922165", "Memória RAM Husky 8GB",
                 "memoria-ram-husky-8gb", price, withDiscount, available,
-                seller, marketplace, warranty);
+                seller, marketplace, warranty, IMAGE);
     }
 
     @Test
@@ -61,6 +64,13 @@ class KabumNormalizerTest {
     }
 
     @Test
+    void carriesTheProductImage() {
+        Offer offer = normalizer.toOffer(product(new BigDecimal("10"),
+                new BigDecimal("10"), true, "KaBuM!", false, "1 ano"));
+        assertThat(offer.imageUrl()).isEqualTo(IMAGE);
+    }
+
+    @Test
     void setsSourceToKabum() {
         Offer offer = normalizer.toOffer(product(new BigDecimal("10"),
                 new BigDecimal("10"), true, "KaBuM!", false, "1 ano"));
@@ -74,7 +84,7 @@ class KabumNormalizerTest {
         KabumProduct outOfStockFromThirdParty = new KabumProduct("922165",
                 "Memória RAM Husky 8GB", "memoria-ram-husky-8gb",
                 new BigDecimal("823.52"), new BigDecimal("699.99"),
-                false, "UP DISTRIBUIDORA", true, "Sem Garantia");
+                false, "UP DISTRIBUIDORA", true, "Sem Garantia", null);
 
         Offer offer = normalizer.toOffer(outOfStockFromThirdParty);
 
@@ -85,7 +95,7 @@ class KabumNormalizerTest {
         KabumProduct inStockFromKabum = new KabumProduct("313833",
                 "Memória Kingston 8GB", "memoria-kingston-8gb",
                 new BigDecimal("619"), new BigDecimal("619"),
-                true, "KaBuM!", false, "3 anos");
+                true, "KaBuM!", false, "3 anos", null);
 
         Offer outra = normalizer.toOffer(inStockFromKabum);
 

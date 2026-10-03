@@ -45,11 +45,11 @@ class SearchControllerTest {
                             new Offer(Source.KABUM, "2",
                                     "Dissipador para Memória RAM", new BigDecimal("19.90"),
                                     new BigDecimal("19.90"), true, "KaBuM!", "1 ano",
-                                    false, "https://y"),
+                                    false, "https://y", "https://images.kabum.com.br/y_m.jpg"),
                             new Offer(Source.KABUM, "1",
                                     "Memória RAM Husky 8GB", new BigDecimal("699.99"),
                                     new BigDecimal("823.52"), true, "KaBuM!", "3 anos",
-                                    false, "https://x"));
+                                    false, "https://x", "https://images.kabum.com.br/x_m.jpg"));
                 }
             };
         }
@@ -84,7 +84,8 @@ class SearchControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers[0].title").value("Memória RAM Husky 8GB"))
                 .andExpect(jsonPath("$.offers[0].effectiveCost").value("699.99"))
-                .andExpect(jsonPath("$.offers[0].discountPercentage").value(15));
+                .andExpect(jsonPath("$.offers[0].discountPercentage").value(15))
+                .andExpect(jsonPath("$.offers[0].imageUrl").value("https://images.kabum.com.br/x_m.jpg"));
     }
 
     @Test

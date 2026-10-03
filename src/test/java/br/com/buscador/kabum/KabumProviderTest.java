@@ -28,7 +28,7 @@ class KabumProviderTest {
     void returnsWhatTheCacheFinds() {
         Offer expected = new Offer(Source.KABUM, "1", "Memória RAM",
                 new BigDecimal("10"), new BigDecimal("10"),
-                true, "KaBuM!", "1 ano", false, "https://x");
+                true, "KaBuM!", "1 ano", false, "https://x", null);
         KabumProvider provider = new KabumProvider(new StubCatalogCache(List.of(expected)), PROPERTIES);
 
         assertThat(provider.search("memoria")).containsExactly(expected);

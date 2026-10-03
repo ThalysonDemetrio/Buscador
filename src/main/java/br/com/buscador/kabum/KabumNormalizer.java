@@ -26,6 +26,7 @@ public class KabumNormalizer {
                 product.sellerName(),
                 product.warranty(),
                 product.marketplace(),
-                PRODUCT_URL.formatted(product.code(), product.friendlyName()));
+                PRODUCT_URL.formatted(product.code(), product.friendlyName()),
+                product.imageUrl());
     }
 }

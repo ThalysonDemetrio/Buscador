@@ -13,7 +13,7 @@ class RelevanceOrderTest {
 
     private static Offer offer(String id, String title, String cost) {
         return new Offer(Source.KABUM, id, title, new BigDecimal(cost),
-                new BigDecimal(cost), true, "KaBuM!", "1 ano", false, "https://x");
+                new BigDecimal(cost), true, "KaBuM!", "1 ano", false, "https://x", null);
     }
 
     private static List<String> sortedIds(String term, Offer... offers) {

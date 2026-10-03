@@ -11,5 +11,6 @@ public record KabumProduct(
         boolean available,
         String sellerName,
         boolean marketplace,
-        String warranty
+        String warranty,
+        String imageUrl
 ) {}

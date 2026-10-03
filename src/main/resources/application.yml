@@ -9,9 +9,10 @@ spring:
     # Caminho fixo: relativo, o banco mudava conforme a pasta de onde a app era iniciada.
     url: jdbc:sqlite:${user.home}/.buscador/buscador.db
     driver-class-name: org.sqlite.JDBC
-  sql:
-    init:
-      mode: always
+  flyway:
+    # Bancos criados antes do Flyway já têm as tabelas da V1, sem histórico:
+    # são marcados como V1 e recebem só as migrações seguintes.
+    baseline-on-migrate: true
 
 buscador:
   catalog:

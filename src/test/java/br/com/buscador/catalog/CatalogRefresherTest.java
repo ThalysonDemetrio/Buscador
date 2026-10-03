@@ -120,7 +120,7 @@ class CatalogRefresherTest {
     private static KabumProduct product(String code, String price) {
         BigDecimal value = new BigDecimal(price);
         return new KabumProduct(code, "Placa de Vídeo " + code, code, value, value,
-                true, "KaBuM!", false, "1 ano");
+                true, "KaBuM!", false, "1 ano", null);
     }
 
     private static class StubKabumClient extends KabumClient {

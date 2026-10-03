@@ -31,7 +31,8 @@ class CatalogCacheTest {
     private Offer offer(String id, String title, String cost) {
         return new Offer(Source.KABUM, id, title, new BigDecimal(cost),
                 new BigDecimal(cost), true, "KaBuM!", "1 ano", false,
-                "https://www.kabum.com.br/produto/" + id + "/x");
+                "https://www.kabum.com.br/produto/" + id + "/x",
+                "https://images.kabum.com.br/produtos/fotos/" + id + "/foto_m.jpg");
     }
 
     @Test
@@ -66,6 +67,15 @@ class CatalogCacheTest {
                 .containsExactly("2");
         assertThat(cache.search("%")).extracting(Offer::externalId)
                 .containsExactly("2");
+    }
+
+    @Test
+    void keepsTheProductImage() {
+        cache.replaceCategory("/hardware/memoria-ram",
+                List.of(offer("7", "Memória RAM Husky", "699.99")));
+
+        assertThat(cache.search("husky").getFirst().imageUrl())
+                .isEqualTo("https://images.kabum.com.br/produtos/fotos/7/foto_m.jpg");
     }
 
     @Test

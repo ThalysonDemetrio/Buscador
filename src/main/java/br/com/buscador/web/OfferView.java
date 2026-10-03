@@ -14,6 +14,7 @@ public record OfferView(
         String warranty,
         boolean thirdPartySeller,
         String url,
+        String imageUrl,
         Integer changeSinceFirstSeen
 ) {
     public static OfferView of(Offer offer, PriceChange change) {
@@ -28,6 +29,7 @@ public record OfferView(
                 offer.warranty(),
                 offer.thirdPartySeller(),
                 offer.url(),
+                offer.imageUrl(),
                 change == null ? null : change.percentage());
     }
 }
