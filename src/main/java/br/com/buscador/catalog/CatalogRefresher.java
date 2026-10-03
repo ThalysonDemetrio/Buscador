@@ -54,10 +54,12 @@ public class CatalogRefresher {
             int ignoredBelowMinPrice = 0;
             BigDecimal minPrice = properties.categories().get(categoryPath);
 
-            int totalPages = 1;
-            for (int page = 1; page <= totalPages; page++) {
+            int storePages = 1;
+            int lastPage = 1;
+            for (int page = 1; page <= lastPage; page++) {
                 KabumPage current = client.fetchCategoryPage(categoryPath, page);
-                totalPages = current.totalPages();
+                storePages = current.totalPages();
+                lastPage = Math.min(storePages, properties.maxPages());
                 discarded += current.discardedCount();
                 for (KabumProduct product : current.products()) {
                     Offer offer = normalizer.toOffer(product);
@@ -69,6 +71,10 @@ public class CatalogRefresher {
                 }
             }
             cache.replaceCategory(categoryPath, offers);
+            if (storePages > lastPage) {
+                log.warn("categoria {} tem {} paginas; baixadas so as {} primeiras (buscador.kabum.max-pages)",
+                        categoryPath, storePages, lastPage);
+            }
             if (discarded > 0 || ignoredBelowMinPrice > 0) {
                 log.warn("categoria {} atualizada: {} ofertas ({} descartados por erro, {} ignorados pelo piso de preco)",
                         categoryPath, offers.size(), discarded, ignoredBelowMinPrice);

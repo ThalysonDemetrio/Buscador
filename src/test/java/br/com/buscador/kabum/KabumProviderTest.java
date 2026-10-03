@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class KabumProviderTest {
 
     private static final KabumProperties PROPERTIES = new KabumProperties(
-            "https://x", "UA", Duration.ofHours(6),
+            "https://x", "UA", Duration.ofHours(6), Duration.ZERO, 50,
             Map.of("/hardware/memoria-ram", BigDecimal.ZERO, "/hardware/fontes", BigDecimal.ZERO));
 
     @Test

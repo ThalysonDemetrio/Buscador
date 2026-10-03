@@ -46,7 +46,7 @@ class CatalogRefresherTest {
         });
         RecordingCatalogCache cache = new RecordingCatalogCache();
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO, "catB", BigDecimal.ZERO, "catC", BigDecimal.ZERO));
+                Duration.ofMinutes(30), Duration.ZERO, 50, Map.of("catA", BigDecimal.ZERO, "catB", BigDecimal.ZERO, "catC", BigDecimal.ZERO));
 
         new CatalogRefresher(client, NORMALIZER, cache, properties)
                 .refreshStaleCategories();
@@ -61,7 +61,7 @@ class CatalogRefresherTest {
         });
         RecordingCatalogCache cache = new RecordingCatalogCache();
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO));
+                Duration.ofMinutes(30), Duration.ZERO, 50, Map.of("catA", BigDecimal.ZERO));
         CatalogRefresher refresher = new CatalogRefresher(client, NORMALIZER, cache, properties);
 
         assertThatCode(refresher::refreshStaleCategories).doesNotThrowAnyException();
@@ -75,7 +75,7 @@ class CatalogRefresherTest {
         RecordingCatalogCache cache = new RecordingCatalogCache();
         cache.lastRefreshes.put("catA", Instant.now());
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), Map.of("catA", BigDecimal.ZERO));
+                Duration.ofMinutes(30), Duration.ZERO, 50, Map.of("catA", BigDecimal.ZERO));
 
         new CatalogRefresher(client, NORMALIZER, cache, properties)
                 .refreshStaleCategories();
@@ -90,13 +90,31 @@ class CatalogRefresherTest {
                 : new KabumPage(List.of(product("abaixo", "299.99"), product("no-piso", "300.00")), 2, 0));
         RecordingCatalogCache cache = new RecordingCatalogCache();
         KabumProperties properties = new KabumProperties("https://x", "UA",
-                Duration.ofMinutes(30), Map.of("gpu", new BigDecimal("300")));
+                Duration.ofMinutes(30), Duration.ZERO, 50, Map.of("gpu", new BigDecimal("300")));
 
         new CatalogRefresher(client, NORMALIZER, cache, properties)
                 .refreshStaleCategories();
 
         assertThat(cache.savedOffers.get("gpu")).extracting(Offer::externalId)
                 .containsExactlyInAnyOrder("gt730", "no-piso");
+    }
+
+    @Test
+    void stopsAtThePageLimitEvenWhenTheStoreReportsMore() {
+        List<Integer> requestedPages = new ArrayList<>();
+        StubKabumClient client = new StubKabumClient((category, page) -> {
+            requestedPages.add(page);
+            return new KabumPage(List.of(product("p" + page, "100.00")), 5, 0);
+        });
+        RecordingCatalogCache cache = new RecordingCatalogCache();
+        KabumProperties properties = new KabumProperties("https://x", "UA",
+                Duration.ofMinutes(30), Duration.ZERO, 2, Map.of("cat", BigDecimal.ZERO));
+
+        new CatalogRefresher(client, NORMALIZER, cache, properties)
+                .refreshStaleCategories();
+
+        assertThat(requestedPages).containsExactly(1, 2);
+        assertThat(cache.savedOffers.get("cat")).hasSize(2);
     }
 
     private static KabumProduct product(String code, String price) {
