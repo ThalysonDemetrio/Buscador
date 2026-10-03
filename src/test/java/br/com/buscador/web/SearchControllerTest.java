@@ -10,10 +10,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(SearchController.class)
 @Import(SearchControllerTest.Providers.class)
+@ExtendWith(OutputCaptureExtension.class)
 class SearchControllerTest {
 
     static class Providers {
@@ -99,6 +104,17 @@ class SearchControllerTest {
         mvc.perform(get("/api/search").param("term", "memoria"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.failedSources[0]").value("Mercado Livre"));
+    }
+
+    @Test
+    void logsTheFailingSourceWithItsStacktrace(CapturedOutput output) throws Exception {
+        mvc.perform(get("/api/search").param("term", "memoria"))
+                .andExpect(status().isOk());
+
+        assertThat(output)
+                .contains("fonte Mercado Livre falhou")
+                .contains("java.lang.IllegalStateException: fonte fora do ar")
+                .containsPattern("\\tat br\\.com\\.buscador\\.web\\.SearchControllerTest");
     }
 
     @Test
