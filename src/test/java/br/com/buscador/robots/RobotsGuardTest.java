@@ -1,6 +1,9 @@
 package br.com.buscador.robots;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -65,6 +68,18 @@ class RobotsGuardTest {
         assertThat(guard.isAllowed(
                 "https://www.kabum.com.br/hardware/memoria-ram?Sort=Price"))
                 .isFalse();
+    }
+
+    /** Em turco, "I".toLowerCase() vira "ı" (sem ponto) e "/LOGIN" escaparia de "/login". */
+    @Test
+    void blocksUppercaseUrlEvenUnderTurkishDefaultLocale() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertThat(guard.isAllowed("https://www.kabum.com.br/LOGIN")).isFalse();
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
     @Test

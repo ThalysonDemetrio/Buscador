@@ -1,5 +1,7 @@
 package br.com.buscador.robots;
 
+import java.util.Locale;
+
 public class RobotsGuard {
 
     private final RobotsRules rules;
@@ -21,7 +23,7 @@ public class RobotsGuard {
     }
 
     private String matchedFragment(String url) {
-        String urlLowerCase = url.toLowerCase();
+        String urlLowerCase = url.toLowerCase(Locale.ROOT);
         for (String fragment : rules.disallowedFragments()) {
             if (urlLowerCase.contains(fragment)) {
                 return fragment;
