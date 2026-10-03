@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # As actions estão fixadas por SHA; sem isto, elas envelhecem sem aviso.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
