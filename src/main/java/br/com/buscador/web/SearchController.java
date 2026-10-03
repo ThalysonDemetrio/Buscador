@@ -2,7 +2,6 @@ package br.com.buscador.web;
 
 import br.com.buscador.history.PriceChange;
 import br.com.buscador.history.PriceHistory;
-import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
 import br.com.buscador.offer.OfferProvider;
 import br.com.buscador.search.RelevanceOrder;
@@ -30,13 +29,10 @@ public class SearchController {
 
     private final List<OfferProvider> providers;
     private final PriceHistory history;
-    private final KabumProperties kabumProperties;
 
-    public SearchController(List<OfferProvider> providers, PriceHistory history,
-                            KabumProperties kabumProperties) {
+    public SearchController(List<OfferProvider> providers, PriceHistory history) {
         this.providers = providers;
         this.history = history;
-        this.kabumProperties = kabumProperties;
     }
 
     @GetMapping("/api/search")
@@ -74,6 +70,9 @@ public class SearchController {
                 .map(o -> OfferView.of(o, changes.get(o)))
                 .toList();
         history.record(offers);
-        return new SearchResult(views, failed, kabumProperties.categories().keySet().stream().toList());
+        List<String> coverage = providers.stream()
+                .flatMap(p -> p.coverage().stream())
+                .toList();
+        return new SearchResult(views, failed, coverage);
     }
 }

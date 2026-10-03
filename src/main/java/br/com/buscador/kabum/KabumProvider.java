@@ -16,9 +16,11 @@ import java.util.List;
 public class KabumProvider implements OfferProvider {
 
     private final CatalogCache cache;
+    private final KabumProperties properties;
 
-    public KabumProvider(CatalogCache cache) {
+    public KabumProvider(CatalogCache cache, KabumProperties properties) {
         this.cache = cache;
+        this.properties = properties;
     }
 
     @Override
@@ -29,5 +31,10 @@ public class KabumProvider implements OfferProvider {
     @Override
     public List<Offer> search(String term) {
         return cache.search(term);
+    }
+
+    @Override
+    public List<String> coverage() {
+        return List.copyOf(properties.categories().keySet());
     }
 }
