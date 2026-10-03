@@ -6,6 +6,7 @@ import br.com.buscador.robots.RobotsRules;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
@@ -31,7 +32,7 @@ class KabumClientTest {
         server = MockRestServiceServer.bindTo(builder).build();
         KabumProperties properties = new KabumProperties(
                 "https://www.kabum.com.br", "buscador-interno/1.0",
-                Duration.ofHours(6), java.util.Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
+                Duration.ofHours(6), Duration.ZERO, 50, java.util.Map.of("/hardware/memoria-ram", BigDecimal.ZERO));
         client = new KabumClient(builder.build(),
                 new RobotsGuard(RobotsRules.kabum()),
                 new KabumPayloadParser(), properties);
@@ -62,6 +63,28 @@ class KabumClientTest {
         client.fetchCategoryPage("/hardware/memoria-ram", 2);
 
         server.verify();
+    }
+
+    @Test
+    void waitsTheConfiguredIntervalBetweenRequests() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer pacedServer = MockRestServiceServer.bindTo(builder).build();
+        Duration interval = Duration.ofMillis(300);
+        KabumClient pacedClient = new KabumClient(builder.build(),
+                new RobotsGuard(RobotsRules.kabum()), new KabumPayloadParser(),
+                new KabumProperties("https://www.kabum.com.br", "buscador-interno/1.0",
+                        Duration.ofHours(6), interval, 50,
+                        java.util.Map.of("/hardware/memoria-ram", BigDecimal.ZERO)));
+        pacedServer.expect(ExpectedCount.twice(),
+                        requestTo(org.hamcrest.Matchers.startsWith("https://www.kabum.com.br/hardware/memoria-ram")))
+                .andRespond(withSuccess(fixture, MediaType.TEXT_HTML));
+
+        long start = System.nanoTime();
+        pacedClient.fetchCategoryPage("/hardware/memoria-ram", 1);
+        pacedClient.fetchCategoryPage("/hardware/memoria-ram", 2);
+
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isGreaterThanOrEqualTo(interval);
+        pacedServer.verify();
     }
 
     @Test
