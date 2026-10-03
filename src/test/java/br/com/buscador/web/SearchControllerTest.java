@@ -59,8 +59,8 @@ class SearchControllerTest {
         PriceHistory noHistory() {
             return new PriceHistory(null) {
                 public void record(List<Offer> offers) { }
-                public java.util.Optional<br.com.buscador.history.PriceChange>
-                        changeFor(Offer offer) { return java.util.Optional.empty(); }
+                public java.util.Map<Offer, br.com.buscador.history.PriceChange>
+                        changesFor(List<Offer> offers) { return java.util.Map.of(); }
             };
         }
 

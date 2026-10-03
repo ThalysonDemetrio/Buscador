@@ -1,5 +1,6 @@
 package br.com.buscador.web;
 
+import br.com.buscador.history.PriceChange;
 import br.com.buscador.history.PriceHistory;
 import br.com.buscador.kabum.KabumProperties;
 import br.com.buscador.offer.Offer;
@@ -15,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,9 +67,10 @@ public class SearchController {
                     "busca interrompida");
         }
 
+        Map<Offer, PriceChange> changes = history.changesFor(offers);
         List<OfferView> views = offers.stream()
                 .sorted(RelevanceOrder.forTerm(term))
-                .map(o -> OfferView.of(o, history.changeFor(o).orElse(null)))
+                .map(o -> OfferView.of(o, changes.get(o)))
                 .toList();
         history.record(offers);
         return new SearchResult(views, failed, kabumProperties.categories().keySet().stream().toList());
