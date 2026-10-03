@@ -239,6 +239,7 @@ src/main/java/br/com/buscador/
   kabum/KabumHttpConfiguration.java bean do RestClient
   catalog/CatalogCache.java         SQLite + busca por palavra-chave
   catalog/CatalogRefresher.java     pagina e enche o cache
+  catalog/CatalogRefreshSchedule.java  roda o refresher em background (@Scheduled)
   history/PriceHistory.java         grava e calcula variação
   history/PriceChange.java          a variação
   web/SearchController.java         GET /api/search — fan-out com virtual threads
@@ -251,11 +252,12 @@ src/main/java/br/com/buscador/
 
 **Duas armadilhas de estrutura já resolvidas — não reintroduza:**
 
-1. **`KabumProvider` tem dois construtores** (um do Spring, um de pacote para
-   testes). O do Spring **precisa** de `@Autowired`: sem a anotação o Spring
-   não escolhe nenhum, procura o construtor sem argumentos, e a aplicação não
-   sobe. E **não** coloque `@Primary` — na Fatia 2 os providers convivem numa
-   lista sem precedência.
+1. **A busca nunca chama a loja.** `KabumProvider` só lê o cache; quem fala
+   com a KaBuM é o `CatalogRefreshSchedule`, ao subir e a cada
+   `buscador.catalog.refresh.check-interval`. Todo `@SpringBootTest` precisa de
+   `buscador.catalog.refresh.enabled=false`, senão o teste baixa a loja real.
+   E **não** coloque `@Primary` no provider — na Fatia 2 os providers convivem
+   numa lista sem precedência.
 
 2. **Nenhum `@Bean` na `BuscadorApplication`.** Bean declarado na classe
    `@SpringBootApplication` não é filtrado pelo slice do `@WebMvcTest` e
@@ -264,8 +266,8 @@ src/main/java/br/com/buscador/
 
 **Verificado funcionando contra a loja real:** 8 categorias carregam sem falha,
 7.132 ofertas em cache, busca "rtx 5060" devolve 79 resultados com preço,
-desconto, vendedor e os avisos. Primeira busca do dia ~70s; seguintes ~5s;
-cache dura 6h.
+desconto, vendedor e os avisos. A busca responde em <1s mesmo durante a
+atualização em background; cache dura 6h.
 
 ---
 
@@ -386,7 +388,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./mvnw test
 ```
 
-Esperado: **61 testes verdes**, sem acesso à rede.
+Esperado: **72 testes verdes**, sem acesso à rede.
 
 Para rodar a aplicação:
 
@@ -394,8 +396,9 @@ Para rodar a aplicação:
 ./mvnw spring-boot:run
 ```
 
-Depois abra `http://localhost:8080`. **A primeira busca demora ~70s** (baixa
-7.132 produtos de 8 categorias); as seguintes levam ~5s.
+Depois abra `http://localhost:8080`. Ao subir, o catálogo vencido é baixado em
+background (~70s para 7.132 produtos de 8 categorias); a busca não espera por
+isso. Num `buscador.db` novo, ela volta vazia até a primeira carga terminar.
 
 **Teste verde com fixture não é a mesma coisa que o sistema funcionando contra
 a loja real.** Nesta sessão, três problemas sérios só apareceram rodando de

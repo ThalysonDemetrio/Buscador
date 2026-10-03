@@ -13,6 +13,9 @@ spring:
       mode: always
 
 buscador:
+  catalog:
+    refresh:
+      check-interval: PT15M
   kabum:
     base-url: https://www.kabum.com.br
     user-agent: buscador-interno/1.0

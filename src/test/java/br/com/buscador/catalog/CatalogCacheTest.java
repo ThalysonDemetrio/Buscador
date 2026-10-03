@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = "buscador.catalog.refresh.enabled=false")
 class CatalogCacheTest {
 
     @DynamicPropertySource
