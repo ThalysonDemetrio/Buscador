@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -55,9 +56,9 @@ public class SearchController {
             for (int i = 0; i < futures.size(); i++) {
                 try {
                     offers.addAll(futures.get(i).get());
-                } catch (Exception e) {
+                } catch (ExecutionException e) {
                     String label = providers.get(i).source().label();
-                    log.warn("fonte {} falhou: {}", label, e.getMessage());
+                    log.warn("fonte {} falhou", label, e.getCause());
                     failed.add(label);
                 }
             }
